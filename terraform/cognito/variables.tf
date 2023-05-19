@@ -15,13 +15,15 @@ variable "admin_invite_email_subject" {
 variable "admin_invite_email_content" {
   type = string
   default = <<EOT
-You have been invited to Gaspar Personal Deep Archive!
-
-Your username: {username} (you can also use your email instead)
-Your temporary password: {####}
-
-It is required to change your default password. It is valid only for 1 day.
-  EOT
+<h1>You have been invited to Gaspar Personal Deep Archive!</h1>
+<ul>
+<li>Your username: {username}</li>
+<li>Your temporary password: {####}</li>
+</ul>
+Your temporary password is valid only for 1 day. When you log in the app for the first time you will be required to change it.
+<p>
+You can download the CLI app by following the instructions <a href="https://github.com/Gtomika/personal-deep-archive">here</a>.
+EOT
 }
 
 variable "admin_invite_sms_message" {
