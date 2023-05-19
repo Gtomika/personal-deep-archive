@@ -22,7 +22,7 @@ module "post_confirmation_cognito_trigger" {
   aws_region = var.aws_region
   error_notification_topic_arn = aws_sns_topic.error_notification_topic.arn
   handler_name = "lambda_function.lambda_handler"
-  path_to_deployment_package = "${path.module}/../post-confirmation-deployment-package/post_confirmation_trigger.zip"
+  path_to_deployment_package = "${path.module}/../post_confirmation_trigger.zip"
   trigger_name = "PostConfirmation"
 }
 
