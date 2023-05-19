@@ -26,7 +26,7 @@ It is required to change your default password. It is valid only for 1 day.
 
 variable "admin_invite_sms_message" {
   type = string
-  default = "Invited to Gaspar Personal Deep Archive: your code is {####}"
+  default = "Invited to Gaspar Personal Deep Archive: your username is {username} and your temporary password is {####}"
 }
 
 variable "user_initializer_lambda_arn" {
