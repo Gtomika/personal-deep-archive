@@ -18,12 +18,7 @@ resource "aws_cognito_user_pool" "personal_archive_user_pool" {
     }
   }
 
-  # recover accounts be email or admin action
   account_recovery_setting {
-    recovery_mechanism {
-      name     = "verified_email"
-      priority = 1
-    }
     recovery_mechanism {
       name     = "admin_only"
       priority = 2
