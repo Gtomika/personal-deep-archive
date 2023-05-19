@@ -64,7 +64,9 @@ resource "aws_lambda_function" "trigger_function" {
   handler = var.handler_name
 
   environment {
-    ERROR_TOPIC_ARN = var.error_notification_topic_arn
+    variables = {
+      ERROR_TOPIC_ARN = var.error_notification_topic_arn
+    }
   }
 
   dead_letter_config {
