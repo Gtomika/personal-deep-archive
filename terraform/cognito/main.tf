@@ -1,5 +1,3 @@
-
-
 resource "aws_cognito_user_pool" "personal_archive_user_pool" {
   name = "${var.app_name}-UserPool-${var.aws_region}"
   deletion_protection = "ACTIVE"
@@ -16,6 +14,7 @@ resource "aws_cognito_user_pool" "personal_archive_user_pool" {
     invite_message_template {
       email_subject = var.admin_invite_email_subject
       email_message = var.admin_invite_email_content
+      sms_message = "" # seems to be required
     }
   }
 

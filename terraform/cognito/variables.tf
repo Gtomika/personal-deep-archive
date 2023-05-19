@@ -24,6 +24,11 @@ It is required to change your default password. It is valid only for 1 day.
   EOT
 }
 
+variable "admin_invite_sms_message" {
+  type = string
+  default = "Invited to Gaspar Personal Deep Archive: your code is {####}"
+}
+
 variable "user_initializer_lambda_arn" {
   type = string
 }
