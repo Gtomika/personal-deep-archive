@@ -1,8 +1,15 @@
+import json
+
 import boto3
+import pathlib
+import os.path as path
 
 import login
+import help_command
 import list_command
+import archive_command
 import constants
+
 
 # login flow
 print('Sign in to access your archive!')
@@ -26,19 +33,37 @@ aws_session = boto3.Session(
     region_name=constants.AWS_REGION
 )
 
+
+def extract_command_arguments(command: str) -> str:
+    return command.split(sep=' ')[1]
+
+
+# getting path to the archive root on this machine
+if path.isfile('paths.json'):
+    print('Reading root directory from file...')
+    with open('paths.json', 'r') as paths_file:
+        paths_data = json.load(paths_file)
+        root_directory = paths_data['root']
+else:
+    root_directory = input(f'Provide the root directory of your archive, such as "C:/data/archive" '
+                       f'or type "cwd" to use the current working directory: ')
+root_directory_path = pathlib.Path(root_directory)
+
+
 # command processing flow
-command = 'list_archive root'
+command = 'help'
 while command != 'exit':
     print("\n\n")
-    if command.startswith('list_archive '):
-        prefix = command.split(sep=' ')[1]
-        list_command.process_list_archive_command(aws_session, user_data.user_id, prefix)
+    if command == 'help':
+        help_command.help_command(user_data.email)
+    elif command.startswith('list_archive '):
+        list_command.process_list_archive_command(aws_session, user_data.user_id, extract_command_arguments(command))
     elif command.startswith('list_restored '):
-        prefix = command.split(sep=' ')[1]
-        list_command.process_list_restored_command(aws_session, user_data.user_id, prefix)
+        list_command.process_list_restored_command(aws_session, user_data.user_id, extract_command_arguments(command))
+    elif command.startswith('archive_data '):
+        archive_command.archive_command(root_directory_path, aws_session, user_data.user_id, extract_command_arguments(command))
     else:
         print('Error: this command is unknown')
     command = input('\n\nEnter your next command or "exit" to stop the program: ')
-
 
 

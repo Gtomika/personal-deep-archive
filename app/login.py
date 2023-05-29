@@ -27,7 +27,8 @@ def obtain_user_credentials():
 
 class UserData:
 
-    def __init__(self, access_token, id_token):
+    def __init__(self, email, access_token, id_token):
+        self.email = email
         self.access_token = access_token
         self.id_token = id_token
         self.user_id = None
@@ -61,6 +62,7 @@ def log_in(username: str, password: str) -> Union[UserData, None]:
             return None
     else:
         return UserData(
+            email=username,
             access_token=sign_in_response['AuthenticationResult']['AccessToken'],
             id_token=sign_in_response['AuthenticationResult']['IdToken']
         )
@@ -77,6 +79,7 @@ def change_temporary_password(username: str, new_password: str, session: str) ->
         }
     )
     return UserData(
+        email=username,
         access_token=change_password_response['AuthenticationResult']['AccessToken'],
         id_token=change_password_response['AuthenticationResult']['IdToken']
     )

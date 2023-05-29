@@ -1,30 +1,45 @@
 import boto3
+import pathlib
 
 import constants
 
 
-def process_list_archive_command(aws_session: boto3.Session, user_id: str, prefix: str):
-    process_list_command(aws_session, user_id, prefix, 'DEEP_ARCHIVE')
+def process_list_archive_command(aws_session: boto3.Session, user_id: str, command_data: str):
+    """
+    Print all objects that are in the 'DEEP ARCHIVE' storage class. Objects will be aggregated
+    into "folders" based on prefix.
+    :param aws_session: AWS session with correct credentials that only allow the users prefix.
+    :param user_id: ID of the user used as S3 prefix.
+    :param command_data: The path to list. Must end with '/' character or be 'root'
+    """
+    __process_list_command(aws_session, user_id, command_data, 'DEEP_ARCHIVE')
 
 
-def process_list_restored_command(aws_session: boto3.Session, user_id: str, prefix: str):
-    process_list_command(aws_session, user_id, prefix, 'STANDARD')
+def process_list_restored_command(aws_session: boto3.Session, user_id: str, command_data: str):
+    """
+    Print all objects that are in the 'STANDARD' (restored) storage class. Objects will be aggregated
+    into "folders" based on prefix.
+    :param aws_session: AWS session with correct credentials that only allow the users prefix.
+    :param user_id: ID of the user used as S3 prefix.
+    :param command_data: The path to list. Must end with '/' character or be 'root'
+    """
+    __process_list_command(aws_session, user_id, command_data, 'STANDARD')
 
 
-def process_list_command(aws_session: boto3.Session, user_id: str, prefix: str, storage_class: str):
-    if prefix != 'root' and not prefix.endswith('/'):
+def __process_list_command(aws_session: boto3.Session, user_id: str, command_data: str, storage_class: str):
+    if command_data != 'root' and not command_data.endswith('/'):
         raise Exception('Prefix must end with / character or be "root"')
 
     s3_client = aws_session.client('s3', constants.AWS_REGION)
-    print(f'Listing your archived contents under "{prefix}"...')
+    print(f'Listing your archived contents under "{command_data}"...')
 
-    if prefix == 'root':
+    if command_data == 'root':
         list_prefix = f'{user_id}/'
     else:
-        list_prefix = f'{user_id}/{prefix}'
+        list_prefix = f'{user_id}/{command_data}'
 
     paginator = s3_client.get_paginator('list_objects_v2')
-    print(f'Using the full prefix {list_prefix}')
+    # print(f'Using the full prefix {list_prefix}')
     pages = paginator.paginate(Bucket=constants.ARCHIVE_BUCKET_NAME, Prefix=list_prefix)
 
     results = set()
