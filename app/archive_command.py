@@ -1,5 +1,6 @@
 import boto3
 import pathlib
+import unicodedata
 
 import constants
 
@@ -76,7 +77,7 @@ def __upload_files_to_archive(s3_client, user_id: str, data: FilesData):
         s3_client.upload_file(
             Filename=file['path_absolute'],
             Bucket=constants.ARCHIVE_BUCKET_NAME,
-            Key=f'{user_id}/{file["path_relative"]}',
+            Key=f'{user_id}/{__sanitize_prefix(file["path_relative"])}',
             ExtraArgs={
                 'StorageClass': 'DEEP_ARCHIVE'
             }
@@ -85,8 +86,12 @@ def __upload_files_to_archive(s3_client, user_id: str, data: FilesData):
         print(f'Uploaded {progress}/{data.file_count} files to archive... {round((progress/data.file_count)*100, 2)}% complete')
 
 
+def __sanitize_prefix(prefix: str):
+    prefix = prefix.replace(' ', '_')
+    prefix = unicodedata.normalize('NFKD', prefix)
+    return prefix.encode('ASCII', 'ignore')
+
+
 # aws_session = boto3.Session()
-# user_id = 'test'
+# user_id = 'test_data'
 # archive_command(pathlib.Path('C:\Programozas\Python\personal-deep-archive'), aws_session, user_id, command_data='app/test_data/')
-
-

@@ -66,6 +66,7 @@ resource "aws_lambda_function" "trigger_function" {
   environment {
     variables = {
       ERROR_TOPIC_ARN = var.error_notification_topic_arn
+      NOTIFICATION_TOPIC_ARN = var.notifications_topic_arn
     }
   }
 
@@ -74,4 +75,13 @@ resource "aws_lambda_function" "trigger_function" {
   }
 
   depends_on = [aws_cloudwatch_log_group.trigger_function_log_group]
+}
+
+resource aws_lambda_permission cognito_invoke_permissions {
+  function_name = aws_lambda_function.trigger_function.function_name
+  statement_id = "AllowCognitoToInvokeTrigger"
+  action = "lambda:InvokeFunction"
+  principal = "cognito-idp.amazonaws.com"
+  source_account = var.aws_account_id
+  # source_arn = var.cognito_user_pool_arn -> not possible due to circular dependencies
 }

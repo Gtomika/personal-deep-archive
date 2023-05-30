@@ -1,4 +1,5 @@
 import json
+import traceback
 
 import boto3
 import pathlib
@@ -45,8 +46,7 @@ if path.isfile('paths.json'):
         paths_data = json.load(paths_file)
         root_directory = paths_data['root']
 else:
-    root_directory = input(f'Provide the root directory of your archive, such as "C:/data/archive" '
-                       f'or type "cwd" to use the current working directory: ')
+    root_directory = input(f'Provide the root directory of your archive, such as "C:/data/archive"')
 root_directory_path = pathlib.Path(root_directory)
 
 
@@ -54,16 +54,20 @@ root_directory_path = pathlib.Path(root_directory)
 command = 'help'
 while command != 'exit':
     print("\n\n")
-    if command == 'help':
-        help_command.help_command(user_data.email)
-    elif command.startswith('list_archive '):
-        list_command.process_list_archive_command(aws_session, user_data.user_id, extract_command_arguments(command))
-    elif command.startswith('list_restored '):
-        list_command.process_list_restored_command(aws_session, user_data.user_id, extract_command_arguments(command))
-    elif command.startswith('archive_data '):
-        archive_command.archive_command(root_directory_path, aws_session, user_data.user_id, extract_command_arguments(command))
-    else:
-        print('Error: this command is unknown')
+    try:
+        if command == 'help':
+            help_command.help_command(user_data.email)
+        elif command.startswith('list_archive '):
+            list_command.process_list_archive_command(aws_session, user_data.user_id, extract_command_arguments(command))
+        elif command.startswith('list_restored '):
+            list_command.process_list_restored_command(aws_session, user_data.user_id, extract_command_arguments(command))
+        elif command.startswith('archive_data '):
+            archive_command.archive_command(root_directory_path, aws_session, user_data.user_id, extract_command_arguments(command))
+        else:
+            print('Error: this command is unknown')
+    except BaseException as e:
+        print('An error prevented your command from running. You may have used an invalid command.')
+        traceback.print_exc()
     command = input('\n\nEnter your next command or "exit" to stop the program: ')
 
 

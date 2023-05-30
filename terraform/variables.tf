@@ -7,6 +7,10 @@ variable "aws_region" {
   description = "Deployment AWS region"
 }
 
+variable "aws_account_id" {
+  type = string
+}
+
 variable "aws_key_id" {
   type = string
   sensitive = true

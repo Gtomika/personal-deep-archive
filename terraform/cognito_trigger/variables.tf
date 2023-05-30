@@ -6,7 +6,15 @@ variable "aws_region" {
   type = string
 }
 
+variable "aws_account_id" {
+  type = string
+}
+
 variable "error_notification_topic_arn" {
+  type = string
+}
+
+variable "notifications_topic_arn" {
   type = string
 }
 

@@ -1,18 +1,16 @@
-# create a topic for errors and subscribe the developer to it
-resource "aws_sns_topic" "error_notification_topic" {
-  name = "${var.app_name}-ErrorNotifications-${var.aws_region}"
-}
-
-resource "aws_sns_topic_subscription" "developer_error_notification_subscription" {
-  protocol  = "email"
-  endpoint  = var.developer_email_address # must be confirmed on previsioning
-  topic_arn = aws_sns_topic.error_notification_topic.arn
-}
-
 module "archive_bucket" {
   source = "./archive_storage_bucket"
   app_name = var.app_name
   aws_region = var.aws_region
+}
+
+module "sns_setup" {
+  source = "./sns"
+  app_name = var.app_name
+  aws_region = var.aws_region
+  aws_account_id = var.aws_account_id
+  developer_email_address = var.developer_email_address
+  archive_bucket_arn = module.archive_bucket.archive_storage_bucket_arn
 }
 
 # provision lambda functions for cognito triggers
@@ -20,7 +18,9 @@ module "post_confirmation_cognito_trigger" {
   source = "./cognito_trigger"
   app_name = var.app_name
   aws_region = var.aws_region
-  error_notification_topic_arn = aws_sns_topic.error_notification_topic.arn
+  aws_account_id = var.aws_account_id
+  error_notification_topic_arn = module.sns_setup.error_notification_topic_arn
+  notifications_topic_arn = module.sns_setup.notifications_topic_arn
   handler_name = "lambda_function.lambda_handler"
   path_to_deployment_package = "${path.module}/../post_confirmation_trigger.zip"
   trigger_name = "PostConfirmation"

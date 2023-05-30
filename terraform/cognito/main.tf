@@ -41,6 +41,7 @@ resource "aws_cognito_user_pool" "personal_archive_user_pool" {
   lambda_config {
     post_confirmation = var.user_initializer_lambda_arn
   }
+
 }
 
 # a client represents an application used to access cognito user pool (with log in screen)
@@ -50,7 +51,8 @@ resource "aws_cognito_user_pool_client" "web_client" {
 
   prevent_user_existence_errors = "ENABLED"
   generate_secret = false
-  refresh_token_validity = 90
+  refresh_token_validity = 90 # days
+  access_token_validity = 12 # hours, how long the temporary AWS credentials are valid
 
   # these actions will be enabled in the client
   explicit_auth_flows = [
