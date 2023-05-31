@@ -17,7 +17,7 @@ data "aws_iam_policy_document" "notifications_topic_policy" {
   statement {
     sid = "AllowS3ToPublish"
     effect = "Allow"
-    actions = ["sns:Publish"],
+    actions = ["sns:Publish"]
     resources = [aws_sns_topic.notifications_topic.arn],
     condition {
       test     = "StringEquals"

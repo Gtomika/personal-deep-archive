@@ -112,9 +112,9 @@ data "aws_iam_policy_document" "cognito_user_policy" {
     resources = ["${var.archive_data_bucket_arn}/&{cognito-identity.amazonaws.com:sub}/*"]
   }
   statement {
-    sid = "AllowAPutOwnObjectGlacier"
+    sid = "AllowPutRestoreOwnObjectGlacier"
     effect = "Allow"
-    actions = ["s3:PutObject"]
+    actions = ["s3:PutObject", "s3:RestoreObject"]
     resources = ["${var.archive_data_bucket_arn}/&{cognito-identity.amazonaws.com:sub}/*"]
     condition {
       test     = "StringEquals"

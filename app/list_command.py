@@ -2,6 +2,7 @@ import boto3
 import pathlib
 
 import constants
+import commons
 
 
 def process_list_archive_command(aws_session: boto3.Session, user_id: str, command_data: str):
@@ -33,10 +34,7 @@ def __process_list_command(aws_session: boto3.Session, user_id: str, command_dat
     s3_client = aws_session.client('s3', constants.AWS_REGION)
     print(f'Listing your archived contents under "{command_data}"...')
 
-    if command_data == 'root':
-        list_prefix = f'{user_id}/'
-    else:
-        list_prefix = f'{user_id}/{command_data}'
+    list_prefix = commons.create_prefix_with_user_id(user_id, command_data)
 
     paginator = s3_client.get_paginator('list_objects_v2')
     # print(f'Using the full prefix {list_prefix}')
