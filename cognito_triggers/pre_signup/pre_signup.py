@@ -29,7 +29,7 @@ def lambda_handler(event, context):
 
 def subscribe_user_to_notification_topic(user_id: str, email: str):
     filter_policy = {
-        "user_id": user_id
+        "user_id": [user_id]
     }
     sns_client.subscribe(
         TopicArn=notification_topic_arn,
