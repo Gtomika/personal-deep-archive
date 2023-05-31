@@ -18,7 +18,7 @@ data "aws_iam_policy_document" "notifications_topic_policy" {
     sid = "AllowS3ToPublish"
     effect = "Allow"
     actions = ["sns:Publish"]
-    resources = [aws_sns_topic.notifications_topic.arn],
+    resources = [aws_sns_topic.notifications_topic.arn]
     condition {
       test     = "StringEquals"
       variable = "aws:SourceAccount"
