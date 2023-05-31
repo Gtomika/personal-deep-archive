@@ -33,4 +33,5 @@ module "cognito_setup" {
   aws_region = var.aws_region
   user_initializer_lambda_arn = module.post_confirmation_cognito_trigger.trigger_lambda_arn
   archive_data_bucket_arn = module.archive_bucket.archive_storage_bucket_arn
+  notifications_topic_arn = module.sns_setup.notifications_topic_arn
 }

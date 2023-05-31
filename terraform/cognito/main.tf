@@ -133,6 +133,12 @@ data "aws_iam_policy_document" "cognito_user_policy" {
       values   = ["&{cognito-identity.amazonaws.com:sub}/*"]
     }
   }
+  statement {
+    sid = "AllowToPushNotifications"
+    effect = "Allow"
+    actions = ["sns:Publish"]
+    resources = [var.notifications_topic_arn]
+  }
 }
 
 resource "aws_iam_role" "authenticated_user_role" {

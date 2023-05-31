@@ -38,3 +38,7 @@ variable "user_initializer_lambda_arn" {
 variable "archive_data_bucket_arn" {
   type = string
 }
+
+variable "notifications_topic_arn" {
+  type = string
+}

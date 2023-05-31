@@ -21,7 +21,7 @@ data "aws_iam_policy_document" "lambda_trust_policy" {
 
 data "aws_iam_policy_document" "trigger_lambda_policy" {
   statement {
-    sid = "AllowLambdaToLog"
+    sid = "Log"
     effect = "Allow"
     actions = [
       "logs:CreateLogStream",
@@ -30,14 +30,16 @@ data "aws_iam_policy_document" "trigger_lambda_policy" {
     resources = ["arn:aws:logs:*:*:*"]
   }
   statement {
-    sid = "AllowLambdaToSendErrorNotification"
+    sid = "SendErrorNotification"
     effect = "Allow"
-    actions = [
-      "sns:Publish"
-    ]
-    resources = [
-      var.error_notification_topic_arn
-    ]
+    actions = ["sns:Publish"]
+    resources = [var.error_notification_topic_arn]
+  }
+  statement {
+    sid = "SubscribeUser"
+    effect = "Allow"
+    actions = ["sns:Subscribe"]
+    resources = [var.notifications_topic_arn]
   }
 }
 
