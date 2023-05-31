@@ -12,17 +12,17 @@ sns_client = boto3.client('sns')
 # invoked by AWS Cognito when a user is confirmed
 def lambda_handler(event, context):
     try:
-        sub = event['request']['userAttributes']['sub']
+        user_id = event['userName']  # UUID, does not include the region
         email = event['request']['userAttributes']['email']
-        print(f'New user has been confirmed. Sub (unique ID): {sub}, email: {email}')
-        subscribe_user_to_notification_topic(sub, email)
+        print(f'New user has been signed up by admin. Sub (unique ID): {user_id}, email: {email}')
+        subscribe_user_to_notification_topic(user_id, email)
     except BaseException:
         print(f'Error while invoking post confirmation callback. Event was: {json.dumps(event)}')
         traceback.print_exc()
         sns_client.publish(
             TopicArn=error_topic_arn,
             Subject='Post Confirmation Trigger error',
-            message='Error while invoking post confirmation callback. Details in CloudWatch logs'
+            Message='Error while invoking post confirmation callback. Details in CloudWatch logs'
         )
     return event
 
