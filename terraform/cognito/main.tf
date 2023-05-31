@@ -39,7 +39,8 @@ resource "aws_cognito_user_pool" "personal_archive_user_pool" {
   }
 
   lambda_config {
-    post_confirmation = var.user_initializer_lambda_arn
+    # post_confirmation = var.user_initializer_lambda_arn -> not triggered of admin creates user manually
+    pre_sign_up = var.user_initializer_lambda_arn
   }
 
 }
