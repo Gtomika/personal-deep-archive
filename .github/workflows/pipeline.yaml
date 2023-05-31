@@ -23,12 +23,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Package post confirmation trigger lambda
-        run: zip -r post_confirmation_trigger.zip cognito_triggers/post_confirmation/*
+      - name: Copy lambda source | pre signup
+        run: cp cognito_triggers/pre_signup/pre_signup.py pre_signup.py
+      - name: Package trigger lambda | pre signup
+        run: zip -r pre_signup_trigger.zip pre_signup.py
       - uses: actions/upload-artifact@v3
         with:
-          name: post-confirmation-deployment-package
-          path: post_confirmation_trigger.zip
+          name: pre-signup-deployment-package
+          path: pre_signup_trigger.zip
 
   terraform-validate:
     runs-on: ubuntu-latest
