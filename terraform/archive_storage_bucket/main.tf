@@ -22,19 +22,3 @@ resource "aws_s3_bucket_lifecycle_configuration" "lifecycle_config" {
     }
   }
 }
-
-locals {
-  restoration_notifications_hash_key = "UserId"
-}
-
-# in this table it is stored how many ongoing restorations does a user have
-resource "aws_dynamodb_table" "restoration_notifications_table" {
-  name = "${var.app_name}-RestorationNotifications-${var.aws_region}"
-  billing_mode = "PAY_PER_REQUEST"
-
-  hash_key = local.restoration_notifications_hash_key
-  attribute {
-    name = local.restoration_notifications_hash_key
-    type = "S"
-  }
-}

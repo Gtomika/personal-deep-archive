@@ -32,19 +32,6 @@ jobs:
           name: pre-signup-deployment-package
           path: pre_signup_trigger.zip
 
-  package-notification-aggregator:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Copy source to root
-        run: cp notifications_aggregator_lambda/notifications_aggregator.py notifications_aggregator.py
-      - name: Package lambda to ZIP
-        run: zip notifications_aggregator.zip notifications_aggregator.py
-      - uses: actions/upload-artifact@v3
-        with:
-          name: notifications-aggregator-deployment-package
-          path: notifications_aggregator.zip
-
   terraform-validate:
     runs-on: ubuntu-latest
     environment: plan-infrastructure
@@ -56,7 +43,7 @@ jobs:
           cd terraform
           terraform init -backend-config="bucket=$TERRAFORM_STATE_BUCKET" -backend-config="key=$TERRAFORM_STATE_FILE" -backend-config="region=$AWS_REGION"
           terraform validate
-    needs: [package-cognito-triggers, package-notification-aggregator]
+    needs: [package-cognito-triggers]
 
   terraform-plan:
     runs-on: ubuntu-latest

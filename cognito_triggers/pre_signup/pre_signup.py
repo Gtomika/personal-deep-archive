@@ -5,7 +5,6 @@ import boto3
 
 error_topic_arn = os.getenv('ERROR_TOPIC_ARN')
 notification_topic_arn = os.getenv('NOTIFICATION_TOPIC_ARN')
-restoration_notifications_table_name = os.getenv('RESTORATION_NOTIFICATIONS_TABLE_NAME')
 aws_region = os.getenv('AWS_REGION')
 
 sns_client = boto3.client('sns')
@@ -20,7 +19,6 @@ def lambda_handler(event, context):
         email = event['request']['userAttributes']['email']
         print(f'New user has been signed up by admin. Sub (unique ID including region): {user_id}, email: {email}')
         subscribe_user_to_notification_topic(user_id, email)
-        put_initial_user_data_dynamodb(user_id)
         print('New user has been subscribed to notifications and initialized!')
     except BaseException:
         print(f'Error while invoking post confirmation callback. Event was: {json.dumps(event)}')
@@ -51,17 +49,3 @@ def subscribe_user_to_notification_topic(user_id: str, email: str):
         }
     )
     # email owner must confirm subscription
-
-
-def put_initial_user_data_dynamodb(user_id: str):
-    dynamodb_client.put_item(
-        TableName=restoration_notifications_table_name,
-        Item={
-            'UserId': {
-                'S': user_id
-            },
-            'OngoingRestorations': {
-                'N': '0'
-            }
-        }
-    )

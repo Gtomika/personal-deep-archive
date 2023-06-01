@@ -29,11 +29,3 @@ variable "path_to_deployment_package" {
 variable "handler_name" {
   type = string
 }
-
-variable "restoration_notifications_table_name" {
-  type = string
-}
-
-variable "restoration_notifications_table_arn" {
-  type = string
-}

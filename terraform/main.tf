@@ -21,8 +21,6 @@ module "pre_signup_cognito_trigger" {
   aws_account_id = var.aws_account_id
   error_notification_topic_arn = module.sns_setup.error_notification_topic_arn
   notifications_topic_arn = module.sns_setup.notifications_topic_arn
-  restoration_notifications_table_name = module.archive_bucket.restoration_notifications_table_name
-  restoration_notifications_table_arn = module.archive_bucket.restoration_notifications_table_arn
   handler_name = "pre_signup.lambda_handler"
   path_to_deployment_package = "${path.module}/../pre_signup_trigger.zip"
   trigger_name = "PreSignup"
@@ -36,19 +34,4 @@ module "cognito_setup" {
   user_initializer_lambda_arn = module.pre_signup_cognito_trigger.trigger_lambda_arn
   archive_data_bucket_arn = module.archive_bucket.archive_storage_bucket_arn
   notifications_topic_arn = module.sns_setup.notifications_topic_arn
-  restoration_notifications_table_arn = module.archive_bucket.restoration_notifications_table_arn
-}
-
-module "notifications_aggregator_function" {
-  source = "./notifications_aggregator_lambda"
-  app_name = var.app_name
-  aws_region = var.aws_region
-  aws_account_id = var.aws_account_id
-  error_notification_topic_arn = module.sns_setup.error_notification_topic_arn
-  notifications_topic_arn = module.sns_setup.notifications_topic_arn
-  restoration_notifications_table_name = module.archive_bucket.restoration_notifications_table_name
-  restoration_notifications_table_arn = module.archive_bucket.restoration_notifications_table_arn
-  archive_bucket_arn = module.archive_bucket.archive_storage_bucket_arn
-  handler_name = "notifications_aggregator.lambda_handler"
-  path_to_deployment_package = "${path.module}/../notifications_aggregator.zip"
 }

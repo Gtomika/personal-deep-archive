@@ -140,17 +140,6 @@ data "aws_iam_policy_document" "cognito_user_policy" {
     actions = ["sns:Publish"]
     resources = [var.notifications_topic_arn]
   }
-  statement {
-    sid = "GetPutOwnItems"
-    effect = "Allow"
-    actions = ["dynamodb:GetItem", "dynamodb:UpdateItem", "dynamodb:Query"]
-    resources = [var.restoration_notifications_table_arn]
-    condition {
-      test     = "ForAllValues:StringEquals"
-      variable = "dynamodb:LeadingKeys"
-      values   = ["&{cognito-identity.amazonaws.com:sub}"]
-    }
-  }
 }
 
 resource "aws_iam_role" "authenticated_user_role" {

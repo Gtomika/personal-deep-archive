@@ -42,7 +42,3 @@ variable "archive_data_bucket_arn" {
 variable "notifications_topic_arn" {
   type = string
 }
-
-variable "restoration_notifications_table_arn" {
-  type = string
-}

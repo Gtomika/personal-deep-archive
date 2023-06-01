@@ -41,12 +41,6 @@ data "aws_iam_policy_document" "trigger_lambda_policy" {
     actions = ["sns:Subscribe"]
     resources = [var.notifications_topic_arn]
   }
-  statement {
-    sid = "PutItem"
-    effect = "Allow"
-    actions = ["dynamodb:PutItem"]
-    resources = [var.restoration_notifications_table_arn]
-  }
 }
 
 resource "aws_iam_role" "trigger_lambda_role" {
@@ -75,7 +69,6 @@ resource "aws_lambda_function" "trigger_function" {
     variables = {
       ERROR_TOPIC_ARN = var.error_notification_topic_arn
       NOTIFICATION_TOPIC_ARN = var.notifications_topic_arn
-      RESTORATION_NOTIFICATIONS_TABLE_NAME = var.restoration_notifications_table_name
     }
   }
 
