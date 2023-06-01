@@ -37,14 +37,18 @@ def restore_command(aws_session: boto3.Session, user_id: str, command_data: str)
 
     if proceed == 'Y':
         print('Starting restoration process for selected objects...')
-        __restore_objects(s3_client, pages, object_count)
+        started_restorations_count = __restore_objects(s3_client, pages, object_count)
+
+        dynamodb_client = aws_session.client('dynamodb')
+        __put_restorations_into_notifications_table(dynamodb_client, user_id, started_restorations_count)
         print('Restoration was successfully started. It will take up to 48 hours to complete. You\'ll receive email notification on completion.')
     else:
         print('Aborting restoration...')
 
 
-def __restore_objects(s3_client, pages, object_count: int):
+def __restore_objects(s3_client, pages, object_count: int) -> int:
     restoration_progress_count = 0
+    successfully_started_restorations_count = 0
     for page in pages:
         if 'Contents' in page:
             for s3_object in page['Contents']:
@@ -66,8 +70,29 @@ def __restore_objects(s3_client, pages, object_count: int):
                                 }
                             }
                         )
-                        print(
-                            f'Restoration started for another object... {round(restoration_progress_count / object_count, 3) * 100}%')
+                        print(f'Restoration started for another object... {round(restoration_progress_count / object_count, 3) * 100}%')
+                        successfully_started_restorations_count += 1
                     except botocore.client.ClientError:
                         print(f'Restoration of object {s3_object["Key"]} could not be started!')
                         traceback.print_exc()
+    return successfully_started_restorations_count
+
+
+def __put_restorations_into_notifications_table(dynamodb_client, user_id: str, started_restorations_count: int):
+    dynamodb_client.update_item(
+        TableName=constants.RESTORATION_NOTIFICATIONS_TABLE_NAME,
+        Key={
+            'UserId': {
+                'S': user_id
+            }
+        },
+        ExpressionAttributeNames={
+            '#C': 'OngoingRestorations'
+        },
+        ExpressionAttributeValues={
+            ':c': {
+                'N': str(started_restorations_count)  # this overrides existing count! TODO
+            }
+        },
+        UpdateExpression='SET #C = :c'
+    )

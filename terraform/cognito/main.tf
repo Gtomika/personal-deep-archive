@@ -107,13 +107,13 @@ data "aws_iam_policy_document" "cognito_user_trust_policy" {
 # define what a logged in user can do
 data "aws_iam_policy_document" "cognito_user_policy" {
   statement {
-    sid = "AllowGetOwnObjects"
+    sid = "GetOwnObjects"
     effect = "Allow"
     actions = ["s3:GetObject"]
     resources = ["${var.archive_data_bucket_arn}/&{cognito-identity.amazonaws.com:sub}/*"]
   }
   statement {
-    sid = "AllowPutRestoreOwnObjectGlacier"
+    sid = "PutRestoreOwnObjectGlacier"
     effect = "Allow"
     actions = ["s3:PutObject", "s3:RestoreObject"]
     resources = ["${var.archive_data_bucket_arn}/&{cognito-identity.amazonaws.com:sub}/*"]
@@ -124,7 +124,7 @@ data "aws_iam_policy_document" "cognito_user_policy" {
     }
   }
   statement {
-    sid = "AllowListOwnS3Prefix"
+    sid = "ListOwnS3Prefix"
     effect = "Allow"
     actions = ["s3:ListBucket"]
     resources = [var.archive_data_bucket_arn]
@@ -135,10 +135,21 @@ data "aws_iam_policy_document" "cognito_user_policy" {
     }
   }
   statement {
-    sid = "AllowToPushNotifications"
+    sid = "PushNotifications"
     effect = "Allow"
     actions = ["sns:Publish"]
     resources = [var.notifications_topic_arn]
+  }
+  statement {
+    sid = "GetPutOwnItems"
+    effect = "Allow"
+    actions = ["dynamodb:GetItem", "dynamodb:UpdateItem", "dynamodb:Query"]
+    resources = [var.restoration_notifications_table_arn]
+    condition {
+      test     = "ForAllValues:StringEquals"
+      variable = "dynamodb:LeadingKeys"
+      values   = ["&{cognito-identity.amazonaws.com:sub}"]
+    }
   }
 }
 

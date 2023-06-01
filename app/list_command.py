@@ -35,17 +35,18 @@ def __process_list_command(aws_session: boto3.Session, user_id: str, command_dat
     print(f'Listing your archived contents under "{command_data}"...')
 
     list_prefix = commons.create_prefix_with_user_id(user_id, command_data)
-
-    paginator = s3_client.get_paginator('list_objects_v2')
-    # print(f'Using the full prefix {list_prefix}')
-    pages = paginator.paginate(Bucket=constants.ARCHIVE_BUCKET_NAME, Prefix=list_prefix)
+    if storage_class == 'STANDARD':
+        list_prefix = f'{constants.RESTORED_PREFIX}{list_prefix}'
 
     results = set()
+
+    paginator = s3_client.get_paginator('list_objects_v2')
+    pages = paginator.paginate(Bucket=constants.ARCHIVE_BUCKET_NAME, Prefix=list_prefix)
     for page in pages:
         if 'Contents' in page:
             for obj in page['Contents']:
                 if obj['StorageClass'] == storage_class:
-                    process_object(results, list_prefix, obj)
+                    __process_object(results, list_prefix, obj)
 
     if len(results) > 0:
         print(f'Found the following {storage_class} type folders and files:\n')
@@ -55,7 +56,7 @@ def __process_list_command(aws_session: boto3.Session, user_id: str, command_dat
         print('Found nothing under the selected prefix\n')
 
 
-def process_object(results: set[str], list_prefix: str, object):
+def __process_object(results: set[str], list_prefix: str, object):
     full_key: str = object['Key']
     prefix_of_interest = full_key.removeprefix(list_prefix)
 

@@ -26,11 +26,24 @@ jobs:
       - name: Copy lambda source | pre signup
         run: cp cognito_triggers/pre_signup/pre_signup.py pre_signup.py
       - name: Package trigger lambda | pre signup
-        run: zip -r pre_signup_trigger.zip pre_signup.py
+        run: zip pre_signup_trigger.zip pre_signup.py
       - uses: actions/upload-artifact@v3
         with:
           name: pre-signup-deployment-package
           path: pre_signup_trigger.zip
+
+  package-notification-aggregator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Copy source to root
+        run: cp notifications_aggregator_lambda/notifications_aggregator.py notifications_aggregator.py
+      - name: Package lambda to ZIP
+        run: zip notifications_aggregator.zip notifications_aggregator.py
+      - uses: actions/upload-artifact@v3
+        with:
+          name: notifications-aggregator-deployment-package
+          path: notifications_aggregator.zip
 
   terraform-validate:
     runs-on: ubuntu-latest
@@ -43,7 +56,7 @@ jobs:
           cd terraform
           terraform init -backend-config="bucket=$TERRAFORM_STATE_BUCKET" -backend-config="key=$TERRAFORM_STATE_FILE" -backend-config="region=$AWS_REGION"
           terraform validate
-    needs: package-cognito-triggers
+    needs: [package-cognito-triggers, package-notification-aggregator]
 
   terraform-plan:
     runs-on: ubuntu-latest
@@ -53,6 +66,9 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: pre-signup-deployment-package
+      - uses: actions/download-artifact@v3
+        with:
+          name: notifications-aggregator-deployment-package
       - uses: hashicorp/setup-terraform@v2
       - name: Plan actions by Terraform
         run: |
@@ -82,6 +98,9 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: pre-signup-deployment-package
+      - uses: actions/download-artifact@v3
+        with:
+          name: notifications-aggregator-deployment-package
       - uses: hashicorp/setup-terraform@v2
       - uses: actions/download-artifact@v3
       - name: Apply Terraform plan

@@ -10,15 +10,12 @@ variable "aws_account_id" {
   type = string
 }
 
+
 variable "error_notification_topic_arn" {
   type = string
 }
 
 variable "notifications_topic_arn" {
-  type = string
-}
-
-variable "trigger_name" {
   type = string
 }
 
@@ -35,5 +32,9 @@ variable "restoration_notifications_table_name" {
 }
 
 variable "restoration_notifications_table_arn" {
+  type = string
+}
+
+variable "archive_bucket_arn" {
   type = string
 }
