@@ -14,11 +14,11 @@ def download_command(root_directory: pathlib.Path, aws_session: boto3.Session, u
     files to download.
     """
     print(f'Checking the objects with prefix {command_data}')
-    full_prefix, internal_prefix = commons.create_restored_prefix_with_user_id(user_id, command_data)
+    full_prefix, internal_prefix = commons.create_prefix_with_user_id(user_id, command_data)
     download_path = __create_download_folder_path(root_directory)
 
     s3_client = aws_session.client('s3')
-    object_count = commons.count_objects_with_prefix(s3_client, full_prefix, 'STANDARD')
+    object_count = commons.count_objects_with_prefix(s3_client, full_prefix, constants.S3_STANDARD)
 
     print(f'A total of {object_count.count} objects will be downloaded, with total size of {object_count.total_size_in_gb()} GB!')
     print(f'The downloaded files will be placed under {download_path.as_posix()}, in your selected root directory.')

@@ -9,16 +9,3 @@ resource "aws_s3_bucket_versioning" "archival_versioning" {
   }
 }
 
-resource "aws_s3_bucket_lifecycle_configuration" "lifecycle_config" {
-  bucket = aws_s3_bucket.archive_storage_bucket.id
-  rule {
-    id     = "restored-objects-expiration"
-    status = "Enabled"
-    filter {
-      prefix = "restored/"
-    }
-    expiration {
-      days = 10
-    }
-  }
-}

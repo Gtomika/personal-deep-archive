@@ -110,10 +110,7 @@ data "aws_iam_policy_document" "cognito_user_policy" {
     sid = "ManageOwnObjects"
     effect = "Allow"
     actions = ["s3:GetObject", "s3:PutObject", "s3:RestoreObject"]
-    resources = [
-      "${var.archive_data_bucket_arn}/&{cognito-identity.amazonaws.com:sub}/*",
-      "${var.archive_data_bucket_arn}/restored/&{cognito-identity.amazonaws.com:sub}/*"
-    ]
+    resources = ["${var.archive_data_bucket_arn}/&{cognito-identity.amazonaws.com:sub}/*"]
   }
   statement {
     sid = "ListOwnS3Prefix"
@@ -123,10 +120,7 @@ data "aws_iam_policy_document" "cognito_user_policy" {
     condition {
       test     = "StringLike"
       variable = "s3:prefix"
-      values   = [
-        "&{cognito-identity.amazonaws.com:sub}/*",
-        "restored/&{cognito-identity.amazonaws.com:sub}/*"
-      ]
+      values   = ["&{cognito-identity.amazonaws.com:sub}/*"]
     }
   }
   statement {

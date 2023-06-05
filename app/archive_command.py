@@ -54,11 +54,11 @@ def __upload_files_to_archive(s3_client, user_id: str, data: commons.FilesData):
                     Bucket=constants.ARCHIVE_BUCKET_NAME,
                     Key=key,
                     ExtraArgs={
-                        'StorageClass': 'DEEP_ARCHIVE'
+                        'StorageClass': constants.S3_DEEP_ARCHIVE
                     }
                 )
                 progress += 1
-                print(f'Uploaded {progress}/{data.file_count} files to archive... {round((progress / data.file_count) * 100, 2)}% complete')
+                print(f'Uploaded file with key {key} to archive... {round((progress / data.file_count) * 100, 2)}% complete')
             except botocore.client.ClientError:
                 print(f'Failed to upload the file with key {key} to the archive.')
                 traceback.print_exc()

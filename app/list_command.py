@@ -12,7 +12,7 @@ def process_list_archive_command(aws_session: boto3.Session, user_id: str, comma
     :param user_id: ID of the user used as S3 prefix.
     :param command_data: The path to list. Must end with '/' character or be 'root'
     """
-    __process_list_command(aws_session, user_id, command_data, 'DEEP_ARCHIVE')
+    __process_list_command(aws_session, user_id, command_data, constants.S3_DEEP_ARCHIVE)
 
 
 def process_list_restored_command(aws_session: boto3.Session, user_id: str, command_data: str):
@@ -23,7 +23,7 @@ def process_list_restored_command(aws_session: boto3.Session, user_id: str, comm
     :param user_id: ID of the user used as S3 prefix.
     :param command_data: The path to list. Must end with '/' character or be 'root'
     """
-    __process_list_command(aws_session, user_id, command_data, 'STANDARD')
+    __process_list_command(aws_session, user_id, command_data, constants.S3_STANDARD)
 
 
 def __process_list_command(aws_session: boto3.Session, user_id: str, command_data: str, storage_class: str):
@@ -32,12 +32,7 @@ def __process_list_command(aws_session: boto3.Session, user_id: str, command_dat
 
     s3_client = aws_session.client('s3', constants.AWS_REGION)
     print(f'Listing your archived contents under "{command_data}"...')
-
-    if storage_class == 'STANDARD':
-        full_prefix, internal_prefix = commons.create_restored_prefix_with_user_id(user_id, command_data)
-    else:
-        full_prefix, internal_prefix = commons.create_prefix_with_user_id(user_id, command_data)
-
+    full_prefix, internal_prefix = commons.create_prefix_with_user_id(user_id, command_data)
     results = set()
 
     paginator = s3_client.get_paginator('list_objects_v2')

@@ -35,19 +35,6 @@ def create_prefix_with_user_id(user_id: str, original_prefix: str) -> tuple[str,
         return f'{user_id}/{original_prefix}', f'{user_id}/'
 
 
-def create_restored_prefix_with_user_id(user_id: str, original_prefix: str) -> tuple[str, str]:
-    """
-    Creates an S3 prefix with 'restored' and the user ID added to the start.
-    Special case 'root' is handled differently.
-    :return Both the full prefix, and the "internal" start of the prefix. The internal
-    part should not be displayed to the user in any way.
-    """
-    if original_prefix == 'root':
-        return f'{constants.RESTORED_PREFIX}{user_id}/', f'{constants.RESTORED_PREFIX}{user_id}/'
-    else:
-        return f'{constants.RESTORED_PREFIX}{user_id}/{original_prefix}', f'{constants.RESTORED_PREFIX}{user_id}/'
-
-
 class ObjectsCount:
 
     def __init__(self, count: int, total_size: int, pages):

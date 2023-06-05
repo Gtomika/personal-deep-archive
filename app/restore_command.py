@@ -47,14 +47,10 @@ def __restore_objects(s3_client, pages, object_count: int) -> int:
                         Bucket=constants.ARCHIVE_BUCKET_NAME,
                         Key=s3_object['Key'],
                         RestoreRequest={
-                            'Tier': 'Bulk',
-                            'OutputLocation': {
-                                'S3': {
-                                    'BucketName': constants.ARCHIVE_BUCKET_NAME,
-                                    'Prefix': constants.RESTORED_PREFIX,
-                                    'StorageClass': 'STANDARD'
-                                }
-                            }
+                            'GlacierJobParameters': {
+                                'Tier': 'Bulk',
+                            },
+                            'Days': 10
                         }
                     )
                     print(f'Restoration started for another object... {round(restoration_progress_count / object_count, 3) * 100}%')
