@@ -1,6 +1,25 @@
-from typing import Tuple
+import pathlib
 
 import constants
+
+
+class FilesData:
+
+    def __init__(self):
+        self.file_count = 0
+        self.total_size = 0
+        self.files = list()
+
+    def register_file(self, file_size: int, file_path_absolute: str, file_path_relative: str):
+        self.file_count += 1
+        self.total_size += file_size
+        self.files.append({
+            'path_relative': file_path_relative,
+            'path_absolute': file_path_absolute
+        })
+
+    def total_size_gb(self) -> float:
+        return self.total_size/(1024*1024*1024)
 
 
 def create_prefix_with_user_id(user_id: str, original_prefix: str) -> tuple[str, str]:
@@ -58,3 +77,29 @@ def count_objects_with_prefix(s3_client, prefix: str, storage_class: str) -> Obj
                     objects_total_size += s3_object['Size']
 
     return ObjectsCount(object_count, objects_total_size, pages)
+
+
+def extract_command_arguments(command: str) -> str:
+    return command.split(sep=' ')[1]
+
+
+def validate_root_folder(root: pathlib.Path):
+    if not root.exists() or not root.is_dir():
+        raise 'Root of the archive must be an existing folder!'
+
+
+def get_files_data(root: pathlib.Path, absolute_path: pathlib.Path) -> FilesData:
+    """
+    Gather stats about the affected files.
+    """
+    if not absolute_path.exists() or not absolute_path.is_dir():
+        raise 'Path specified must point to an existing directory'
+
+    data = FilesData()
+    for file in pathlib.Path(absolute_path).rglob('*.*'):
+        if file.is_file():
+            absolute_path_string = file.as_posix()
+            relative_path_string = file.relative_to(root).as_posix()
+            # print(f'Found file: {absolute_path_string} ({relative_path_string})')
+            data.register_file(file.stat().st_size, absolute_path_string, relative_path_string)
+    return data

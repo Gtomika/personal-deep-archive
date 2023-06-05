@@ -1,29 +1,15 @@
+import traceback
+
 import boto3
 import pathlib
+
+import botocore.client
 import unicodedata
 
 import constants
+import commons
 
 archived_data_price_per_gb = 0.00099
-
-
-class FilesData:
-
-    def __init__(self):
-        self.file_count = 0
-        self.total_size = 0
-        self.files = list()
-
-    def register_file(self, file_size: int, file_path_absolute: str, file_path_relative: str):
-        self.file_count += 1
-        self.total_size += file_size
-        self.files.append({
-            'path_relative': file_path_relative,
-            'path_absolute': file_path_absolute
-        })
-
-    def total_size_gb(self) -> float:
-        return self.total_size/(1024*1024*1024)
 
 
 def archive_command(root: pathlib.Path, aws_session: boto3.Session, user_id: str, command_data: str):
@@ -42,54 +28,61 @@ def archive_command(root: pathlib.Path, aws_session: boto3.Session, user_id: str
 
     print(f'Files under "{absolute_path.as_posix()} will be archived."')
     print('Checking amount of files...')
-    files_data = __get_files_data(root, absolute_path)
+    files_data = commons.get_files_data(root, absolute_path)
     print(f'Found a total of {files_data.file_count} files using {files_data.total_size_gb()} GB of space.')
     print(f'Estimated cost for archiving these files is {round(files_data.total_size_gb() * archived_data_price_per_gb, 5)}$ per month. '
-          f'A relatively small one time upload cost will apply.')
+          f'A one time upload cost will apply.')
 
     proceed = input('Are you sure you want to proceed with archiving these files? (Y)')
     if proceed == 'Y':
         print('Starting the upload of the selected files...')
         s3_client = aws_session.client('s3')
         __upload_files_to_archive(s3_client, user_id, files_data)
-        print(f'Complete! Archived {files_data.file_count} files in your deep archive! Use "list_archive root" to see them.')
+        print(f'Complete! Archived {files_data.file_count} files in your deep archive! Use "list_archive {command_data}" to see them.')
     else:
         print('Aborting the archive command...')
 
 
-def __get_files_data(root: pathlib.Path, absolute_path: pathlib.Path) -> FilesData:
-    """
-    Gather stats about the affected files.
-    """
-    data = FilesData()
-    for file in pathlib.Path(absolute_path).rglob('*.*'):
-        if file.is_file():
-            absolute_path_string = file.as_posix()
-            relative_path_string = file.relative_to(root).as_posix()
-            # print(f'Found file: {absolute_path_string} ({relative_path_string})')
-            data.register_file(file.stat().st_size, absolute_path_string, relative_path_string)
-    return data
-
-
-def __upload_files_to_archive(s3_client, user_id: str, data: FilesData):
+def __upload_files_to_archive(s3_client, user_id: str, data: commons.FilesData):
     progress = 0
     for file in data.files:
-        s3_client.upload_file(
-            Filename=file['path_absolute'],
-            Bucket=constants.ARCHIVE_BUCKET_NAME,
-            Key=f'{user_id}/{__sanitize_prefix(file["path_relative"])}',
-            ExtraArgs={
-                'StorageClass': 'DEEP_ARCHIVE'
-            }
-        )
-        progress += 1
-        print(f'Uploaded {progress}/{data.file_count} files to archive... {round((progress/data.file_count)*100, 2)}% complete')
+        key = f'{user_id}/{__sanitize_prefix(file["path_relative"])}'
+        if not __object_already_exists(s3_client, key):
+            try:
+                s3_client.upload_file(
+                    Filename=file['path_absolute'],
+                    Bucket=constants.ARCHIVE_BUCKET_NAME,
+                    Key=key,
+                    ExtraArgs={
+                        'StorageClass': 'DEEP_ARCHIVE'
+                    }
+                )
+                progress += 1
+                print(f'Uploaded {progress}/{data.file_count} files to archive... {round((progress / data.file_count) * 100, 2)}% complete')
+            except botocore.client.ClientError:
+                print(f'Failed to upload the file with key {key} to the archive.')
+                traceback.print_exc()
+        else:
+            print(f'File with key {key} already exists in the archive: skipping it.')
 
 
 def __sanitize_prefix(prefix: str):
     prefix = prefix.replace(' ', '_')
     prefix = unicodedata.normalize('NFKD', prefix)
     return prefix.encode('ASCII', 'ignore')
+
+
+def __object_already_exists(s3_client, key: str) -> bool:
+    try:
+        s3_client.head_object(Bucket=constants.ARCHIVE_BUCKET_NAME, Key=key)
+        return True
+    except botocore.client.ClientError as e:
+        if e.response['Error']['Code'] == '404':
+            return False
+        else:
+            print(f'Error: unable to check if object with key {key} exists or not. Assuming yes.')
+            return True
+
 
 
 # aws_session = boto3.Session()

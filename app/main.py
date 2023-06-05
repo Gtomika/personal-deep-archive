@@ -12,6 +12,7 @@ import archive_command
 import restore_command
 import download_command
 import constants
+from commons import extract_command_arguments, get_files_data
 
 
 # login flow
@@ -36,21 +37,17 @@ aws_session = boto3.Session(
     region_name=constants.AWS_REGION
 )
 
-
-def extract_command_arguments(command: str) -> str:
-    return command.split(sep=' ')[1]
-
-
 # getting path to the archive root on this machine
 if path.isfile('paths.json'):
-    print('Reading root directory from file...')
     with open('paths.json', 'r') as paths_file:
         paths_data = json.load(paths_file)
         root_directory = paths_data['root']
+        print(f'Read root directory from file, it is {root_directory}')
 else:
     root_directory = input(f'Provide the root directory of your archive, such as "C:/data/archive"')
 root_directory_path = pathlib.Path(root_directory)
-
+root_data = get_files_data(root_directory_path, root_directory_path)
+print(f'The root directory contains a total of {root_data.file_count} files with a total size of {root_data.total_size_gb()} GBs')
 
 # command processing flow
 command = 'help'
@@ -75,5 +72,7 @@ while command != 'exit':
         print('An error prevented your command from running. You may have used an invalid command.')
         traceback.print_exc()
     command = input('\n\nEnter your next command or "exit" to stop the program: ')
+
+
 
 

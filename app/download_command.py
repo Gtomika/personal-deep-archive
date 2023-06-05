@@ -22,6 +22,7 @@ def download_command(root_directory: pathlib.Path, aws_session: boto3.Session, u
 
     print(f'A total of {object_count.count} objects will be downloaded, with total size of {object_count.total_size_in_gb()} GB!')
     print(f'The downloaded files will be placed under {download_path.as_posix()}, in your selected root directory.')
+    print(f'A one time download fee will apply, depending on the size.')
     proceed = input('Are you sure you want to proceed? (Y) ')
 
     if proceed == 'Y':
