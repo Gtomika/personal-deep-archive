@@ -10,6 +10,7 @@ import help_command
 import list_command
 import archive_command
 import restore_command
+import download_command
 import constants
 
 
@@ -66,6 +67,8 @@ while command != 'exit':
             archive_command.archive_command(root_directory_path, aws_session, user_data.user_id, extract_command_arguments(command))
         elif command.startswith('restore_data '):
             restore_command.restore_command(aws_session, user_data.user_id, extract_command_arguments(command))
+        elif command.startswith('download_data '):
+            download_command.download_command(root_directory_path, aws_session, user_data.user_id, extract_command_arguments(command))
         else:
             print('Error: this command is unknown')
     except BaseException as e:
