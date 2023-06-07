@@ -3,30 +3,24 @@ import boto3
 import constants
 import commons
 
+ARCHIVED = 0
+RESTORATION_IN_PROGRESS = 1
+RESTORATION_COMPLETE = 2
+
 
 def process_list_archive_command(aws_session: boto3.Session, user_id: str, command_data: str):
-    """
-    Print all objects that are in the 'DEEP ARCHIVE' storage class. Objects will be aggregated
-    into "folders" based on prefix.
-    :param aws_session: AWS session with correct credentials that only allow the users prefix.
-    :param user_id: ID of the user used as S3 prefix.
-    :param command_data: The path to list. Must end with '/' character or be 'root'
-    """
-    __process_list_command(aws_session, user_id, command_data, constants.S3_DEEP_ARCHIVE)
+    __process_list_command(aws_session, user_id, command_data, ARCHIVED)
+
+
+def process_list_restoration_ongoing_command(aws_session: boto3.Session, user_id: str, command_data: str):
+    __process_list_command(aws_session, user_id, command_data, RESTORATION_IN_PROGRESS)
 
 
 def process_list_restored_command(aws_session: boto3.Session, user_id: str, command_data: str):
-    """
-    Print all objects that are in the 'STANDARD' (restored) storage class. Objects will be aggregated
-    into "folders" based on prefix.
-    :param aws_session: AWS session with correct credentials that only allow the users prefix.
-    :param user_id: ID of the user used as S3 prefix.
-    :param command_data: The path to list. Must end with '/' character or be 'root'
-    """
-    __process_list_command(aws_session, user_id, command_data, constants.S3_STANDARD)
+    __process_list_command(aws_session, user_id, command_data, RESTORATION_COMPLETE)
 
 
-def __process_list_command(aws_session: boto3.Session, user_id: str, command_data: str, storage_class: str):
+def __process_list_command(aws_session: boto3.Session, user_id: str, command_data: str, expected_restoration_state: int):
     if command_data != 'root' and not command_data.endswith('/'):
         raise Exception('Prefix must end with / character or be "root"')
 
@@ -40,19 +34,23 @@ def __process_list_command(aws_session: boto3.Session, user_id: str, command_dat
     for page in pages:
         if 'Contents' in page:
             for obj in page['Contents']:
-                if obj['StorageClass'] == storage_class:
-                    __process_object(results, full_prefix, obj)
+                key = obj['Key']
+                head = s3_client.head_object(
+                    Bucket=constants.ARCHIVE_BUCKET_NAME,
+                    Key=key
+                )
+                if expected_restoration_state == __extract_restoration_status(head):
+                    __process_object(results, full_prefix, key)
 
     if len(results) > 0:
-        print(f'Found the following {storage_class} type folders and files:\n')
+        print(f'Found the following folders and files that match the criteria:')
         for result in results:
             print(result)
     else:
-        print('Found nothing under the selected prefix\n')
+        print('Found nothing under the selected prefix that match the criteria.')
 
 
-def __process_object(results: set[str], full_prefix: str, object):
-    full_key: str = object['Key']
+def __process_object(results: set[str], full_prefix: str, full_key: str):
     prefix_of_interest = full_key.removeprefix(full_prefix)
 
     # is this object in a "folder"?
@@ -61,3 +59,12 @@ def __process_object(results: set[str], full_prefix: str, object):
         results.add(f'{folder}/')
     else:
         results.add(prefix_of_interest)
+
+
+def __extract_restoration_status(head) -> int:
+    if 'Restore' in head:
+        restore_header = head['Restore']
+        # the object can be under restoration or the restoration may have completed
+        return RESTORATION_IN_PROGRESS if restore_header == 'ongoing-request="true"' else RESTORATION_COMPLETE
+    else:
+        return ARCHIVED

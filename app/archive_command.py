@@ -12,7 +12,7 @@ import commons
 archived_data_price_per_gb = 0.00099
 
 
-def archive_command(root: pathlib.Path, aws_session: boto3.Session, user_id: str, command_data: str):
+def process_archive_command(root: pathlib.Path, aws_session: boto3.Session, user_id: str, command_data: str):
     """
     Upload all files with the given prefix as glacier 'DEEP_ARCHIVE' objects. Confirmation is
     required: all info about the files will be listed.
@@ -60,16 +60,17 @@ def __upload_files_to_archive(s3_client, user_id: str, data: commons.FilesData):
                 progress += 1
                 print(f'Uploaded file with key {key} to archive... {round((progress / data.file_count) * 100, 2)}% complete')
             except botocore.client.ClientError:
+                progress += 1
                 print(f'Failed to upload the file with key {key} to the archive.')
                 traceback.print_exc()
         else:
+            progress += 1
             print(f'File with key {key} already exists in the archive: skipping it.')
 
 
 def __sanitize_prefix(prefix: str):
     prefix = prefix.replace(' ', '_')
-    prefix = unicodedata.normalize('NFKD', prefix)
-    return prefix.encode('ASCII', 'ignore')
+    return unicodedata.normalize('NFKD', prefix)
 
 
 def __object_already_exists(s3_client, key: str) -> bool:
@@ -83,8 +84,3 @@ def __object_already_exists(s3_client, key: str) -> bool:
             print(f'Error: unable to check if object with key {key} exists or not. Assuming yes.')
             return True
 
-
-
-# aws_session = boto3.Session()
-# user_id = 'test_data'
-# archive_command(pathlib.Path('C:\Programozas\Python\personal-deep-archive'), aws_session, user_id, command_data='app/test_data/')

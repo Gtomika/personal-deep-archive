@@ -55,17 +55,19 @@ while command != 'exit':
     print("\n\n")
     try:
         if command == 'help':
-            help_command.help_command(user_data.email)
+            help_command.process_help_command(user_data.email)
         elif command.startswith('list_archive '):
             list_command.process_list_archive_command(aws_session, user_data.user_id, extract_command_arguments(command))
+        elif command.startswith('list_ongoing_restoration '):
+            list_command.process_list_restoration_ongoing_command(aws_session, user_data.user_id, extract_command_arguments(command))
         elif command.startswith('list_restored '):
             list_command.process_list_restored_command(aws_session, user_data.user_id, extract_command_arguments(command))
         elif command.startswith('archive_data '):
-            archive_command.archive_command(root_directory_path, aws_session, user_data.user_id, extract_command_arguments(command))
+            archive_command.process_archive_command(root_directory_path, aws_session, user_data.user_id, extract_command_arguments(command))
         elif command.startswith('restore_data '):
-            restore_command.restore_command(aws_session, user_data.user_id, extract_command_arguments(command))
+            restore_command.process_restore_command(aws_session, user_data.user_id, extract_command_arguments(command))
         elif command.startswith('download_data '):
-            download_command.download_command(root_directory_path, aws_session, user_data.user_id, extract_command_arguments(command))
+            download_command.process_download_command(root_directory_path, aws_session, user_data.user_id, extract_command_arguments(command))
         else:
             print('Error: this command is unknown')
     except BaseException as e:

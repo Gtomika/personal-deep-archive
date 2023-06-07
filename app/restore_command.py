@@ -7,7 +7,7 @@ import constants
 import commons
 
 
-def restore_command(aws_session: boto3.Session, user_id: str, command_data: str):
+def process_restore_command(aws_session: boto3.Session, user_id: str, command_data: str):
     """
     After a confirmation, this command triggers the restoration of the DEEP_ARCHIVE objects
     with the given prefix.
@@ -20,7 +20,7 @@ def restore_command(aws_session: boto3.Session, user_id: str, command_data: str)
 
     full_prefix, internal_prefix = commons.create_prefix_with_user_id(user_id, command_data)
 
-    object_count = commons.count_objects_with_prefix(s3_client, full_prefix, 'DEEP_ARCHIVE')
+    object_count = commons.count_objects_with_prefix(s3_client, full_prefix)
 
     print(f'A total of {object_count.count} objects will be restored, with total size of {object_count.total_size_in_gb()} GB!')
     proceed = input('Are you sure you want to proceed? (Y) ')

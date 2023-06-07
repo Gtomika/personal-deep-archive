@@ -46,9 +46,9 @@ class ObjectsCount:
         return round(self.total_size / (1024*1024*1024), 3)
 
 
-def count_objects_with_prefix(s3_client, prefix: str, storage_class: str) -> ObjectsCount:
+def count_objects_with_prefix(s3_client, prefix: str) -> ObjectsCount:
     """
-    Counts how many objects exist with the given prefix and storage class.
+    Counts how many objects exist with the given prefix.
     :return: Both the count and the total size in bytes.
     """
     paginator = s3_client.get_paginator('list_objects_v2')
@@ -59,9 +59,8 @@ def count_objects_with_prefix(s3_client, prefix: str, storage_class: str) -> Obj
     for page in pages:
         if 'Contents' in page:
             for s3_object in page['Contents']:
-                if s3_object['StorageClass'] == storage_class:
-                    object_count += 1
-                    objects_total_size += s3_object['Size']
+                object_count += 1
+                objects_total_size += s3_object['Size']
 
     return ObjectsCount(object_count, objects_total_size, pages)
 
