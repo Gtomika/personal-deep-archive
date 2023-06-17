@@ -1,3 +1,5 @@
+import multiprocessing
+
 import boto3
 
 import constants
@@ -25,22 +27,28 @@ def __process_list_command(aws_session: boto3.Session, user_id: str, command_dat
         raise Exception('Prefix must end with / character or be "root"')
 
     s3_client = aws_session.client('s3', constants.AWS_REGION)
-    print(f'Listing your archived contents under "{command_data}"...')
+    print(f'Listing your archived contents under "{command_data}", this might take some time...')
     full_prefix, internal_prefix = commons.create_prefix_with_user_id(user_id, command_data)
-    results = set()
 
     paginator = s3_client.get_paginator('list_objects_v2')
-    pages = paginator.paginate(Bucket=constants.ARCHIVE_BUCKET_NAME, Prefix=full_prefix)
+    pages = paginator.paginate(
+        Bucket=constants.ARCHIVE_BUCKET_NAME,
+        Prefix=full_prefix,
+        PaginationConfig={
+            'PageSize': constants.MAX_PAGE_SIZE
+        }
+    )
+
+    args = []
     for page in pages:
-        if 'Contents' in page:
-            for obj in page['Contents']:
-                key = obj['Key']
-                head = s3_client.head_object(
-                    Bucket=constants.ARCHIVE_BUCKET_NAME,
-                    Key=key
-                )
-                if expected_restoration_state == __extract_restoration_status(head):
-                    __process_object(results, full_prefix, key)
+        args.append((aws_session, full_prefix, expected_restoration_state, page))
+
+    thread_pool = multiprocessing.pool.ThreadPool(processes=constants.THREADS)
+    results_per_page = thread_pool.starmap(__process_page, args)
+    thread_pool.close()
+    thread_pool.join()
+
+    results = __aggregate_results(results_per_page)
 
     if len(results) > 0:
         print(f'Found the following folders and files that match the criteria:')
@@ -48,6 +56,33 @@ def __process_list_command(aws_session: boto3.Session, user_id: str, command_dat
             print(result)
     else:
         print('Found nothing under the selected prefix that match the criteria.')
+
+
+def __aggregate_results(results_per_page):
+    aggregated_results = set()
+    for result_of_page in results_per_page:
+        aggregated_results = aggregated_results.union(result_of_page)
+    return aggregated_results
+
+
+def __process_page(
+        aws_session: boto3.Session,
+        full_prefix: str,
+        expected_restoration_state: str,
+        page
+):
+    s3_client = aws_session.client('s3')
+    results = set()
+    if 'Contents' in page:
+        for obj in page['Contents']:
+            key = obj['Key']
+            head = s3_client.head_object(
+                Bucket=constants.ARCHIVE_BUCKET_NAME,
+                Key=key
+            )
+            if expected_restoration_state == __extract_restoration_status(head):
+                __process_object(results, full_prefix, key)
+    return results
 
 
 def __process_object(results: set[str], full_prefix: str, full_key: str):

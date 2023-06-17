@@ -89,3 +89,12 @@ def get_files_data(root: pathlib.Path, absolute_path: pathlib.Path) -> FilesData
             # print(f'Found file: {absolute_path_string} ({relative_path_string})')
             data.register_file(file.stat().st_size, absolute_path_string, relative_path_string)
     return data
+
+
+def batch(iterable, n=1):
+    """
+    Batch an iterable into the given sized chunks.
+    """
+    l = len(iterable)
+    for ndx in range(0, l, n):
+        yield iterable[ndx:min(ndx + n, l)]
