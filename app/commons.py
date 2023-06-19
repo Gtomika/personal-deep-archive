@@ -52,7 +52,13 @@ def count_objects_with_prefix(s3_client, prefix: str) -> ObjectsCount:
     :return: Both the count and the total size in bytes.
     """
     paginator = s3_client.get_paginator('list_objects_v2')
-    pages = paginator.paginate(Bucket=constants.ARCHIVE_BUCKET_NAME, Prefix=prefix)
+    pages = paginator.paginate(
+        Bucket=constants.ARCHIVE_BUCKET_NAME,
+        Prefix=prefix,
+        PaginationConfig={
+            'PageSize': constants.MAX_PAGE_SIZE
+        }
+    )
 
     object_count = 0
     objects_total_size = 0

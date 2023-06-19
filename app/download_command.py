@@ -1,9 +1,10 @@
 import traceback
 import pathlib
+import multiprocessing
+import threading
 
 import boto3
 import botocore.client
-import botocore.errorfactory
 
 import commons
 import constants
@@ -23,39 +24,71 @@ def process_download_command(root_directory: pathlib.Path, aws_session: boto3.Se
     proceed = input('Are you sure you want to proceed? (Y) ')
 
     if proceed == 'Y':
-        print('Starting the download of all selected objects. This will take some time...')
-        downloads_completed = __download_objects(s3_client, object_count.pages, download_path, internal_prefix, object_count.count)
+        print(f'Starting the download of all selected objects using {constants.THREADS} parallel processes. This will take some time...')
+        downloads_completed = __download_objects(aws_session, object_count.pages, download_path, internal_prefix, object_count.count)
         print(f'Download of the selected objects finished. {downloads_completed}/{object_count.count} downloads were successfully completed.')
     else:
         print('Aborting download...')
 
 
-def __download_objects(s3_client, pages, download_path: pathlib.Path, internal_prefix: str, total_files: int) -> int:
-    downloads_success = 0
-    downloads_total = 0
+download_progress = 0
+download_success = 0
+
+
+def __download_objects(
+        aws_session: boto3.Session,
+        pages,
+        download_path: pathlib.Path,
+        internal_prefix: str,
+        total_files: int
+) -> int:
+    global download_progress, download_success
+
+    download_success = 0
+    download_progress = 0
+
+    thread_pool = multiprocessing.pool.ThreadPool(processes=constants.THREADS)
+    lock = threading.Lock()
+
     for page in pages:
-        if 'Contents' in page:
-            for s3_object in page['Contents']:
-                try:
-                    key = s3_object['Key']
-                    with __create_download_file_for_object(download_path, key, internal_prefix) as download_file:
-                        s3_client.download_fileobj(
-                            Bucket=constants.ARCHIVE_BUCKET_NAME,
-                            Key=key,
-                            Fileobj=download_file
-                        )
-                    downloads_success += 1
-                    downloads_total += 1
-                    progress = round((downloads_total/total_files)*100, 3)
-                    print(f'The object "{key}" has been downloaded. Progress: {progress}%"')
-                except s3_client.exceptions.InvalidObjectState:
-                    print(f'The object "{key}" has NOT BEEN RESTORED, and so it cannot be downloaded.')
-                    downloads_total += 1
-                except botocore.client.ClientError:
-                    print(f'Failed to download S3 object with key {key}')
-                    traceback.print_exc()
-                    downloads_total += 1
-    return downloads_success
+        thread_pool.apply_async(__download_object_page, (aws_session, page, download_path, internal_prefix, total_files, lock))
+
+    thread_pool.close()
+    thread_pool.join()
+
+    return download_success
+
+
+def __download_object_page(
+        aws_session: boto3.Session,
+        page,
+        download_path: pathlib.Path,
+        internal_prefix: str,
+        total_files: int,
+        lock: threading.Lock
+):
+    global download_success
+
+    s3_client = aws_session.client('s3')
+    if 'Contents' in page:
+        for s3_object in page['Contents']:
+            key = s3_object['Key']
+            progress_percent = __update_progress(lock, total_files)
+            try:
+                with __create_download_file_for_object(download_path, key, internal_prefix) as download_file:
+                    s3_client.download_fileobj(
+                        Bucket=constants.ARCHIVE_BUCKET_NAME,
+                        Key=key,
+                        Fileobj=download_file
+                    )
+                with lock:
+                    download_success += 1
+                print(f'The object "{key}" has been downloaded. {progress_percent}% complete.')
+            except s3_client.exceptions.InvalidObjectState:
+                print(f'The object "{key}" has NOT BEEN RESTORED, and so it cannot be downloaded. {progress_percent}% complete.')
+            except botocore.client.ClientError:
+                print(f'Failed to download S3 object with key "{key}". {progress_percent}% complete.')
+                traceback.print_exc()
 
 
 def __create_download_folder_path(root: pathlib.Path) -> pathlib.Path:
@@ -84,4 +117,10 @@ def __create_download_file_for_object(download_path: pathlib.Path, s3_key: str, 
     return open(absolute_path, 'wb')
 
 
+def __update_progress(lock: threading.Lock, total_count: int) -> float:
+    global download_progress
 
+    with lock:
+        download_progress += 1
+
+    return round((download_progress/total_count)*100, 3)

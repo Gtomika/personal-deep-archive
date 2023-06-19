@@ -1,5 +1,6 @@
 import traceback
 import multiprocessing
+import threading
 
 import boto3
 import pathlib
@@ -37,28 +38,42 @@ def process_archive_command(root: pathlib.Path, aws_session: boto3.Session, user
     proceed = input('Are you sure you want to proceed with archiving these files? (Y)')
     if proceed == 'Y':
         print(f'Starting the upload of the selected files using {constants.THREADS} parallel processes')
-        s3_client = aws_session.client('s3')
-        __upload_files_to_archive(s3_client, user_id, files_data)
+        __upload_files_to_archive(aws_session, user_id, files_data)
         print(f'Complete! Archived {files_data.file_count} files in your deep archive! Use "list_archive {command_data}" to see them.')
     else:
         print('Aborting the archive command...')
 
 
-def __upload_files_to_archive(s3_client, user_id: str, data: commons.FilesData):
+progress_count = 0
+
+
+def __upload_files_to_archive(aws_session: boto3.Session, user_id: str, data: commons.FilesData):
+    global progress_count
+    progress_count = 0
+
+    lock = threading.Lock()
     thread_pool = multiprocessing.pool.ThreadPool(processes=constants.THREADS)
     for batched_files in commons.batch(data.files, constants.THREADS):
         # separate thread for the batched files
-        thread_pool.apply_async(__upload_batch_to_archive, (s3_client, batched_files, user_id))
+        thread_pool.apply_async(__upload_batch_to_archive, (aws_session, batched_files, user_id, lock, data.file_count))
     thread_pool.close()
     thread_pool.join()
 
 
-def __upload_batch_to_archive(s3_client, batched_files, user_id: str,):
+def __upload_batch_to_archive(
+        aws_session: boto3.Session,
+        batched_files,
+        user_id: str,
+        lock: threading.Lock,
+        total_count: int
+):
+    s3_client = aws_session.client('s3')
     for file in batched_files:
-        __upload_file_to_archive(s3_client, file, user_id)
+        __upload_file_to_archive(s3_client, file, user_id, lock, total_count)
 
 
-def __upload_file_to_archive(s3_client, file, user_id: str):
+def __upload_file_to_archive(s3_client, file, user_id: str, lock: threading.Lock, total_count: int):
+    progress_percent = __update_progress(lock, total_count)
     sanitized_prefix = __sanitize_prefix(file["path_relative"])
     key = f'{user_id}/{sanitized_prefix}'
     if not __object_already_exists(s3_client, key):
@@ -71,13 +86,12 @@ def __upload_file_to_archive(s3_client, file, user_id: str):
                     'StorageClass': constants.S3_DEEP_ARCHIVE
                 }
             )
-            print(
-                f'Uploaded file with key {sanitized_prefix} to archive.')
+            print(f'Uploaded file with key {sanitized_prefix} to archive. Archiving {progress_percent}% complete.')
         except botocore.client.ClientError:
-            print(f'Failed to upload the file with key {sanitized_prefix} to the archive.')
+            print(f'Failed to upload the file with key {sanitized_prefix} to the archive. Archiving {progress_percent}% complete.')
             traceback.print_exc()
     else:
-        print(f'File with key {sanitized_prefix} already exists in the archive: skipping it.')
+        print(f'File with key {sanitized_prefix} already exists in the archive: skipping it. Archiving {progress_percent}% complete.')
 
 
 def __sanitize_prefix(prefix: str):
@@ -96,3 +110,11 @@ def __object_already_exists(s3_client, key: str) -> bool:
             print(f'Error: unable to check if object with key {key} exists or not. Assuming yes.')
             return True
 
+
+def __update_progress(lock: threading.Lock, total_count: int) -> float:
+    global progress_count
+
+    with lock:
+        progress_count += 1
+
+    return round((progress_count/total_count)*100, 3)
