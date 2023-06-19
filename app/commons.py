@@ -60,6 +60,7 @@ def count_objects_with_prefix(s3_client, prefix: str) -> ObjectsCount:
         }
     )
 
+    saved_pages = []
     object_count = 0
     objects_total_size = 0
     for page in pages:
@@ -67,8 +68,9 @@ def count_objects_with_prefix(s3_client, prefix: str) -> ObjectsCount:
             for s3_object in page['Contents']:
                 object_count += 1
                 objects_total_size += s3_object['Size']
+            saved_pages.append(page)
 
-    return ObjectsCount(object_count, objects_total_size, pages)
+    return ObjectsCount(object_count, objects_total_size, saved_pages)
 
 
 def extract_command_arguments(command: str) -> str:

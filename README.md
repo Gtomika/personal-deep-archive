@@ -1,6 +1,7 @@
 ## Archive app
 
-Archiving program that uses AWS S3 glacier to safely story personal data.
+Archiving program that uses AWS S3 glacier to safely store personal data with lower cost then alternatives 
+on the market (such as Dropbox).
 
 ### Access
 

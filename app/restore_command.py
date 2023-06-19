@@ -29,7 +29,7 @@ def process_restore_command(aws_session: boto3.Session, user_id: str, command_da
 
     if proceed == 'Y':
         print(f'Starting restoration process for selected objects using {constants.THREADS} parallel processes...')
-        started_restorations_count = __restore_objects(aws_session, object_count.pages, object_count.count)
+        started_restorations_count = __restore_objects(aws_session, object_count.pages, object_count.count, internal_prefix)
         print(f'Restoration was successfully started for {started_restorations_count}/{object_count.count} objects.'
               f' It will take up to 48 hours to complete. Check back later.')
     else:
@@ -40,7 +40,12 @@ restoration_progress_count = 0
 successfully_started_restorations_count = 0
 
 
-def __restore_objects(aws_session: boto3.Session, pages, object_count: int) -> int:
+def __restore_objects(
+        aws_session: boto3.Session,
+        pages,
+        object_count: int,
+        internal_prefix: str
+) -> int:
     global restoration_progress_count, successfully_started_restorations_count
 
     restoration_progress_count = 0
@@ -50,7 +55,7 @@ def __restore_objects(aws_session: boto3.Session, pages, object_count: int) -> i
     lock = threading.Lock()
 
     for page in pages:
-        thread_pool.apply_async(__restore_objects_page, (aws_session, page, lock, object_count))
+        thread_pool.apply_async(__restore_objects_page, (aws_session, page, lock, object_count, internal_prefix))
 
     thread_pool.close()
     thread_pool.join()
@@ -58,18 +63,25 @@ def __restore_objects(aws_session: boto3.Session, pages, object_count: int) -> i
     return successfully_started_restorations_count
 
 
-def __restore_objects_page(aws_session: boto3.Session, page, lock: threading.Lock, object_count: int):
+def __restore_objects_page(
+        aws_session: boto3.Session,
+        page,
+        lock: threading.Lock,
+        object_count: int,
+        internal_prefix: str
+):
     global restoration_progress_count, successfully_started_restorations_count
 
     s3_client = aws_session.client('s3')
     if 'Contents' in page:
         for s3_object in page['Contents']:
+            key = s3_object['Key']
+            user_friendly_key = key.removeprefix(internal_prefix)
             progress_percent = __update_progress(lock, object_count)
             try:
-                # objects with prefix 'restored/' are expired in 3 days: bucket lifecycle config
-                s3_client.restore_object(
+                response = s3_client.restore_object(
                     Bucket=constants.ARCHIVE_BUCKET_NAME,
-                    Key=s3_object['Key'],
+                    Key=key,
                     RestoreRequest={
                         'GlacierJobParameters': {
                             'Tier': 'Bulk',
@@ -77,12 +89,19 @@ def __restore_objects_page(aws_session: boto3.Session, page, lock: threading.Loc
                         'Days': 10
                     }
                 )
-                print(f'Restoration started for another object... {progress_percent}% complete')
-                with lock:
-                    successfully_started_restorations_count += 1
-            except botocore.client.ClientError:
-                print(f'Restoration of object {s3_object["Key"]} could not be started! {progress_percent}% complete')
-                traceback.print_exc()
+                status_code = response['ResponseMetadata']['HTTPStatusCode']
+                if status_code == 202:
+                    print(f'Restoration started for object "{user_friendly_key}"... {progress_percent}% complete')
+                    with lock:
+                        successfully_started_restorations_count += 1
+                else:
+                    print(f'The object "{user_friendly_key} is already restored and ready for download... {progress_percent}% complete"')
+            except botocore.client.ClientError as e:
+                if e.response['Error']['Code'] == 'RestoreAlreadyInProgress':
+                    print(f'The object "{user_friendly_key} is currently being restored, please wait for finish... {progress_percent}% complete"')
+                else:
+                    print(f'Restoration of object "{user_friendly_key}" could not be started! {progress_percent}% complete')
+                    traceback.print_exc()
 
 
 def __update_progress(lock: threading.Lock, total_count: int) -> float:

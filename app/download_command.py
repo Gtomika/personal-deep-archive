@@ -73,9 +73,11 @@ def __download_object_page(
     if 'Contents' in page:
         for s3_object in page['Contents']:
             key = s3_object['Key']
+            user_friendly_key = key.removeprefix(internal_prefix)
+            absolute_path = download_path.joinpath(user_friendly_key)
             progress_percent = __update_progress(lock, total_files)
             try:
-                with __create_download_file_for_object(download_path, key, internal_prefix) as download_file:
+                with __create_download_file_for_object(absolute_path) as download_file:
                     s3_client.download_fileobj(
                         Bucket=constants.ARCHIVE_BUCKET_NAME,
                         Key=key,
@@ -83,12 +85,14 @@ def __download_object_page(
                     )
                 with lock:
                     download_success += 1
-                print(f'The object "{key}" has been downloaded. {progress_percent}% complete.')
+                print(f'The object "{user_friendly_key}" has been downloaded. {progress_percent}% complete.')
             except s3_client.exceptions.InvalidObjectState:
-                print(f'The object "{key}" has NOT BEEN RESTORED, and so it cannot be downloaded. {progress_percent}% complete.')
+                print(f'The object "{user_friendly_key}" has NOT BEEN RESTORED, and so it cannot be downloaded. {progress_percent}% complete.')
+                __delete_empty_file(absolute_path)
             except botocore.client.ClientError:
-                print(f'Failed to download S3 object with key "{key}". {progress_percent}% complete.')
+                print(f'Failed to download S3 object with key "{user_friendly_key}". {progress_percent}% complete.')
                 traceback.print_exc()
+                __delete_empty_file(absolute_path)
 
 
 def __create_download_folder_path(root: pathlib.Path) -> pathlib.Path:
@@ -101,15 +105,10 @@ def __create_download_folder_path(root: pathlib.Path) -> pathlib.Path:
     return download_dir
 
 
-def __create_download_file_for_object(download_path: pathlib.Path, s3_key: str, internal_prefix: str):
+def __create_download_file_for_object(absolute_path: pathlib.Path):
     """
-    Converts the S3 key of the object into a path where it will be downloaded. The folder
-    structure is based on the prefix.
-    :param internal_prefix The 'common' prefix such as user ID, that should not be reflected in the local directory structure
+    Makes sure the given path exists and opens it for download.
     """
-    prefix_of_interest = s3_key.removeprefix(internal_prefix)
-    absolute_path = download_path.joinpath(prefix_of_interest)
-
     if not absolute_path.exists():
         absolute_path.parent.mkdir(parents=True, exist_ok=True)
         absolute_path.touch()
@@ -124,3 +123,12 @@ def __update_progress(lock: threading.Lock, total_count: int) -> float:
         download_progress += 1
 
     return round((download_progress/total_count)*100, 3)
+
+
+def __delete_empty_file(absolute_path: pathlib.Path):
+    """
+    Gets rid of leftover files that were not populated due to download errors
+    """
+    if absolute_path is not None and absolute_path.exists() and absolute_path.stat().st_size == 0:
+        absolute_path.unlink()
+
