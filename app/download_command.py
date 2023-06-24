@@ -15,7 +15,7 @@ def process_download_command(root_directory: pathlib.Path, aws_session: boto3.Se
     full_prefix, internal_prefix = commons.create_prefix_with_user_id(user_id, command_data)
     download_path = __create_download_folder_path(root_directory)
 
-    s3_client = aws_session.client('s3')
+    s3_client = commons.build_s3_client(aws_session)
     object_count = commons.count_objects_with_prefix(s3_client, full_prefix)
 
     print(f'A total of {object_count.count} objects will be downloaded, with total size of {object_count.total_size_in_gb()} GB!')
@@ -69,7 +69,7 @@ def __download_object_page(
 ):
     global download_success
 
-    s3_client = aws_session.client('s3')
+    s3_client = commons.build_s3_client_accelerated(aws_session)
     if 'Contents' in page:
         for s3_object in page['Contents']:
             key = s3_object['Key']

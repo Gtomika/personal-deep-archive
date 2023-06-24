@@ -26,7 +26,7 @@ def __process_list_command(aws_session: boto3.Session, user_id: str, command_dat
     if command_data != 'root' and not command_data.endswith('/'):
         raise Exception('Prefix must end with / character or be "root"')
 
-    s3_client = aws_session.client('s3', constants.AWS_REGION)
+    s3_client = commons.build_s3_client(aws_session)
     print(f'Listing your archived contents under "{command_data}", this might take some time...')
     full_prefix, internal_prefix = commons.create_prefix_with_user_id(user_id, command_data)
 

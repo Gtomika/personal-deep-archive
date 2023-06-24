@@ -18,7 +18,7 @@ def process_restore_command(aws_session: boto3.Session, user_id: str, command_da
     :param command_data: Objects will be restored with this prefix.
     """
     print(f'Checking the objects for restoration with prefix {command_data}...')
-    s3_client = aws_session.client('s3')
+    s3_client = commons.build_s3_client(aws_session)
 
     full_prefix, internal_prefix = commons.create_prefix_with_user_id(user_id, command_data)
 
@@ -72,7 +72,7 @@ def __restore_objects_page(
 ):
     global restoration_progress_count, successfully_started_restorations_count
 
-    s3_client = aws_session.client('s3')
+    s3_client = commons.build_s3_client(aws_session)
     if 'Contents' in page:
         for s3_object in page['Contents']:
             key = s3_object['Key']

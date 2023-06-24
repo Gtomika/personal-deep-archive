@@ -67,7 +67,7 @@ def __upload_batch_to_archive(
         lock: threading.Lock,
         total_count: int
 ):
-    s3_client = aws_session.client('s3')
+    s3_client = commons.build_s3_client_accelerated(aws_session)
     for file in batched_files:
         __upload_file_to_archive(s3_client, file, user_id, lock, total_count)
 

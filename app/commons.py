@@ -1,5 +1,8 @@
 import pathlib
 
+import boto3
+from botocore.config import Config
+
 import constants
 
 
@@ -106,3 +109,20 @@ def batch(iterable, n=1):
     l = len(iterable)
     for ndx in range(0, l, n):
         yield iterable[ndx:min(ndx + n, l)]
+
+
+def build_s3_client(aws_session: boto3.Session):
+    return aws_session.client(
+        service_name='s3',
+        region_name=constants.AWS_REGION
+    )
+
+
+def build_s3_client_accelerated(aws_session: boto3.Session):
+    return aws_session.client(
+        service_name='s3',
+        region_name=constants.AWS_REGION,
+        config=Config(s3={
+            'use_accelerate_endpoint': True
+        })
+    )
