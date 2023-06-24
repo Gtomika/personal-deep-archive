@@ -82,7 +82,7 @@ def extract_command_arguments(command: str) -> str:
 
 def validate_root_folder(root: pathlib.Path):
     if not root.exists() or not root.is_dir():
-        raise 'Root of the archive must be an existing folder!'
+        raise Exception('Root of the archive must be an existing folder!')
 
 
 def get_files_data(root: pathlib.Path, absolute_path: pathlib.Path) -> FilesData:
@@ -90,7 +90,7 @@ def get_files_data(root: pathlib.Path, absolute_path: pathlib.Path) -> FilesData
     Gather stats about the affected files.
     """
     if not absolute_path.exists() or not absolute_path.is_dir():
-        raise 'Path specified must point to an existing directory'
+        raise Exception('Path specified must point to an existing directory')
 
     data = FilesData()
     for file in pathlib.Path(absolute_path).rglob('*.*'):

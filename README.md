@@ -29,6 +29,9 @@ Restoration of Glacier `DEEP_ARCHIVE` data can take up to 48 hours. Users are
 subscribed to an AWS SNS topic that sends an email notification when their download 
 is complete.
 
+**List commands are inefficient** because for each object a *HEAD* request is made... Could not 
+find any other way to check an objects restoration status. Maybe use DynamoDB?
+
 ### Example workflows
 
 Before each usage:
