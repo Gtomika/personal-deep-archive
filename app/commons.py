@@ -1,4 +1,6 @@
 import pathlib
+from time import perf_counter
+from contextlib import contextmanager
 
 import boto3
 from botocore.config import Config
@@ -126,3 +128,9 @@ def build_s3_client_accelerated(aws_session: boto3.Session):
             'use_accelerate_endpoint': True
         })
     )
+
+
+@contextmanager
+def catch_time() -> float:
+    start = perf_counter()
+    yield lambda: perf_counter() - start

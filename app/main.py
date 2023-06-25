@@ -59,10 +59,6 @@ if __name__ == '__main__':
                 help_command.process_help_command(user_data.email)
             elif command.startswith('list_archive '):
                 list_command.process_list_archive_command(aws_session, user_data.user_id, extract_command_arguments(command))
-            elif command.startswith('list_ongoing_restoration '):
-                list_command.process_list_restoration_ongoing_command(aws_session, user_data.user_id, extract_command_arguments(command))
-            elif command.startswith('list_restored '):
-                list_command.process_list_restored_command(aws_session, user_data.user_id, extract_command_arguments(command))
             elif command.startswith('archive_data '):
                 archive_command.process_archive_command(root_directory_path, aws_session, user_data.user_id, extract_command_arguments(command))
             elif command.startswith('restore_data '):

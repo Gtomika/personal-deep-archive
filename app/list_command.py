@@ -1,28 +1,19 @@
 import multiprocessing
+import time
 
 import boto3
 
 import constants
 import commons
 
-ARCHIVED = 0
-RESTORATION_IN_PROGRESS = 1
-RESTORATION_COMPLETE = 2
-
 
 def process_list_archive_command(aws_session: boto3.Session, user_id: str, command_data: str):
-    __process_list_command(aws_session, user_id, command_data, ARCHIVED)
+    with commons.catch_time() as list_timer:
+        __process_list_command(aws_session, user_id, command_data)
+    print(f'Listing finished at {time.ctime()} and took {list_timer():.4f} seconds')
 
 
-def process_list_restoration_ongoing_command(aws_session: boto3.Session, user_id: str, command_data: str):
-    __process_list_command(aws_session, user_id, command_data, RESTORATION_IN_PROGRESS)
-
-
-def process_list_restored_command(aws_session: boto3.Session, user_id: str, command_data: str):
-    __process_list_command(aws_session, user_id, command_data, RESTORATION_COMPLETE)
-
-
-def __process_list_command(aws_session: boto3.Session, user_id: str, command_data: str, expected_restoration_state: int):
+def __process_list_command(aws_session: boto3.Session, user_id: str, command_data: str):
     if command_data != 'root' and not command_data.endswith('/'):
         raise Exception('Prefix must end with / character or be "root"')
 
@@ -41,7 +32,7 @@ def __process_list_command(aws_session: boto3.Session, user_id: str, command_dat
 
     args = []
     for page in pages:
-        args.append((aws_session, full_prefix, expected_restoration_state, page))
+        args.append((full_prefix, page))
 
     thread_pool = multiprocessing.pool.ThreadPool(processes=constants.THREADS)
     results_per_page = thread_pool.starmap(__process_page, args)
@@ -51,11 +42,12 @@ def __process_list_command(aws_session: boto3.Session, user_id: str, command_dat
     results = __aggregate_results(results_per_page)
 
     if len(results) > 0:
-        print(f'Found the following folders and files that match the criteria:')
+        print(f'Found the following folders and files under this folder:\n')
         for result in results:
             print(result)
+        print('\nPlease note that these may be archived, restored or under restoration right now.')
     else:
-        print('Found nothing under the selected prefix that match the criteria.')
+        print('Found nothing under the selected prefix in your archive. Try with "list_archive root" to see your folders.')
 
 
 def __aggregate_results(results_per_page):
@@ -65,23 +57,12 @@ def __aggregate_results(results_per_page):
     return aggregated_results
 
 
-def __process_page(
-        aws_session: boto3.Session,
-        full_prefix: str,
-        expected_restoration_state: str,
-        page
-):
-    s3_client = aws_session.client('s3')
+def __process_page(full_prefix: str, page):
     results = set()
     if 'Contents' in page:
         for obj in page['Contents']:
             key = obj['Key']
-            head = s3_client.head_object(
-                Bucket=constants.ARCHIVE_BUCKET_NAME,
-                Key=key
-            )
-            if expected_restoration_state == __extract_restoration_status(head):
-                __process_object(results, full_prefix, key)
+            __process_object(results, full_prefix, key)
     return results
 
 
@@ -96,10 +77,3 @@ def __process_object(results: set[str], full_prefix: str, full_key: str):
         results.add(prefix_of_interest)
 
 
-def __extract_restoration_status(head) -> int:
-    if 'Restore' in head:
-        restore_header = head['Restore']
-        # the object can be under restoration or the restoration may have completed
-        return RESTORATION_IN_PROGRESS if restore_header == 'ongoing-request="true"' else RESTORATION_COMPLETE
-    else:
-        return ARCHIVED

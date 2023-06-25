@@ -1,5 +1,6 @@
 import multiprocessing.pool
 import threading
+import time
 import traceback
 
 import boto3
@@ -28,10 +29,11 @@ def process_restore_command(aws_session: boto3.Session, user_id: str, command_da
     proceed = input('Are you sure you want to proceed? (Y) ')
 
     if proceed == 'Y':
-        print(f'Starting restoration process for selected objects using {constants.THREADS} parallel processes...')
-        started_restorations_count = __restore_objects(aws_session, object_count.pages, object_count.count, internal_prefix)
-        print(f'Restoration was successfully started for {started_restorations_count}/{object_count.count} objects.'
-              f' It will take up to 48 hours to complete. Check back later.')
+        print(f'Starting restoration process for selected objects using {constants.THREADS} parallel processes at {time.ctime()}')
+        with commons.catch_time() as restore_timer:
+            started_restorations_count = __restore_objects(aws_session, object_count.pages, object_count.count, internal_prefix)
+        print(f'Restoration was successfully started for {started_restorations_count}/{object_count.count} objects at {time.ctime()}'
+              f' and took {restore_timer():.4f} seconds. It will take up to 48 hours to complete restorations. Check back later.')
     else:
         print('Aborting restoration...')
 
@@ -100,7 +102,7 @@ def __restore_objects_page(
                 if e.response['Error']['Code'] == 'RestoreAlreadyInProgress':
                     print(f'The object "{user_friendly_key} is currently being restored, please wait for finish... {progress_percent}% complete"')
                 else:
-                    print(f'Restoration of object "{user_friendly_key}" could not be started! {progress_percent}% complete')
+                    print(f'Restoration of object "{user_friendly_key}" could not be started: {e.response["Error"]["Code"]}! {progress_percent}% complete')
                     traceback.print_exc()
 
 

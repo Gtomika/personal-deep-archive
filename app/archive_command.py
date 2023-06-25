@@ -1,6 +1,7 @@
 import traceback
 import multiprocessing
 import threading
+import time
 
 import boto3
 import pathlib
@@ -37,9 +38,10 @@ def process_archive_command(root: pathlib.Path, aws_session: boto3.Session, user
 
     proceed = input('Are you sure you want to proceed with archiving these files? (Y)')
     if proceed == 'Y':
-        print(f'Starting the upload of the selected files using {constants.THREADS} parallel processes')
-        __upload_files_to_archive(aws_session, user_id, files_data)
-        print(f'Complete! Archived {files_data.file_count} files in your deep archive! Use "list_archive {command_data}" to see them.')
+        print(f'Starting the upload of the selected files using {constants.THREADS} parallel processes at {time.ctime()}')
+        with commons.catch_time() as archiving_timer:
+            __upload_files_to_archive(aws_session, user_id, files_data)
+        print(f'Complete! Archived {files_data.file_count} files in your deep archive! Finished at {time.ctime()} and took {archiving_timer():.4f} seconds')
     else:
         print('Aborting the archive command...')
 
@@ -55,7 +57,8 @@ def __upload_files_to_archive(aws_session: boto3.Session, user_id: str, data: co
     thread_pool = multiprocessing.pool.ThreadPool(processes=constants.THREADS)
     for batched_files in commons.batch(data.files, constants.THREADS):
         # separate thread for the batched files
-        thread_pool.apply_async(__upload_batch_to_archive, (aws_session, batched_files, user_id, lock, data.file_count))
+        thread_pool.apply_async(__upload_batch_to_archive,
+                                (aws_session, batched_files, user_id, lock, data.file_count))
     thread_pool.close()
     thread_pool.join()
 
@@ -76,39 +79,24 @@ def __upload_file_to_archive(s3_client, file, user_id: str, lock: threading.Lock
     progress_percent = __update_progress(lock, total_count)
     sanitized_prefix = __sanitize_prefix(file["path_relative"])
     key = f'{user_id}/{sanitized_prefix}'
-    if not __object_already_exists(s3_client, key):
-        try:
-            s3_client.upload_file(
-                Filename=file['path_absolute'],
-                Bucket=constants.ARCHIVE_BUCKET_NAME,
-                Key=key,
-                ExtraArgs={
-                    'StorageClass': constants.S3_DEEP_ARCHIVE
-                }
-            )
-            print(f'Uploaded file with key {sanitized_prefix} to archive. Archiving {progress_percent}% complete.')
-        except botocore.client.ClientError:
-            print(f'Failed to upload the file with key {sanitized_prefix} to the archive. Archiving {progress_percent}% complete.')
-            traceback.print_exc()
-    else:
-        print(f'File with key {sanitized_prefix} already exists in the archive: skipping it. Archiving {progress_percent}% complete.')
+    try:
+        s3_client.upload_file(
+            Filename=file['path_absolute'],
+            Bucket=constants.ARCHIVE_BUCKET_NAME,
+            Key=key,
+            ExtraArgs={
+                'StorageClass': constants.S3_DEEP_ARCHIVE
+            }
+        )
+        print(f'Uploaded file with key {sanitized_prefix} to archive. Archiving {progress_percent}% complete.')
+    except botocore.client.ClientError as e:
+        print(f'Failed to upload the file with key {sanitized_prefix} to the archive: {e.response["Error"]["Code"]}! Archiving {progress_percent}% complete.')
+        traceback.print_exc()
 
 
 def __sanitize_prefix(prefix: str):
     prefix = prefix.replace(' ', '_')
     return unicodedata.normalize('NFKD', prefix)
-
-
-def __object_already_exists(s3_client, key: str) -> bool:
-    try:
-        s3_client.head_object(Bucket=constants.ARCHIVE_BUCKET_NAME, Key=key)
-        return True
-    except botocore.client.ClientError as e:
-        if e.response['Error']['Code'] == '404':
-            return False
-        else:
-            print(f'Error: unable to check if object with key {key} exists or not. Assuming yes.')
-            return True
 
 
 def __update_progress(lock: threading.Lock, total_count: int) -> float:

@@ -1,3 +1,4 @@
+import time
 import traceback
 import pathlib
 import multiprocessing
@@ -24,9 +25,11 @@ def process_download_command(root_directory: pathlib.Path, aws_session: boto3.Se
     proceed = input('Are you sure you want to proceed? (Y) ')
 
     if proceed == 'Y':
-        print(f'Starting the download of all selected objects using {constants.THREADS} parallel processes. This will take some time...')
-        downloads_completed = __download_objects(aws_session, object_count.pages, download_path, internal_prefix, object_count.count)
-        print(f'Download of the selected objects finished. {downloads_completed}/{object_count.count} downloads were successfully completed.')
+        print(f'Starting the download of all selected objects using {constants.THREADS} parallel processes at {time.ctime()}. This will take some time...')
+        with commons.catch_time() as download_timer:
+            downloads_completed = __download_objects(aws_session, object_count.pages, download_path, internal_prefix, object_count.count)
+        print(f'Download of the selected objects finished at {time.ctime()} (took {download_timer():.4f} seconds).'
+              f' {downloads_completed}/{object_count.count} downloads were successfully completed.')
     else:
         print('Aborting download...')
 
@@ -89,8 +92,8 @@ def __download_object_page(
             except s3_client.exceptions.InvalidObjectState:
                 print(f'The object "{user_friendly_key}" has NOT BEEN RESTORED, and so it cannot be downloaded. {progress_percent}% complete.')
                 __delete_empty_file(absolute_path)
-            except botocore.client.ClientError:
-                print(f'Failed to download S3 object with key "{user_friendly_key}". {progress_percent}% complete.')
+            except botocore.client.ClientError as e:
+                print(f'Failed to download S3 object with key "{user_friendly_key}": {e.response["Error"]["Code"]}! {progress_percent}% complete.')
                 traceback.print_exc()
                 __delete_empty_file(absolute_path)
 
