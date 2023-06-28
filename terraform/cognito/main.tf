@@ -54,6 +54,7 @@ resource "aws_cognito_user_pool_client" "web_client" {
   generate_secret = false
   refresh_token_validity = 90 # days
   access_token_validity = 12 # hours, how long the temporary AWS credentials are valid
+  id_token_validity = 12
 
   # these actions will be enabled in the client
   explicit_auth_flows = [
