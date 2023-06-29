@@ -20,9 +20,9 @@ data "aws_iam_policy_document" "archive_bucket_policy_doc" {
     sid = "DenyObjectDeletions"
     effect = "Deny"
     actions = ["s3:DeleteObject"]
-    principals {
-      type = "*"
-      identifiers = ["*"]
+    not_principals {
+      type = "AWS"
+      identifiers = ["arn:aws:iam::844933496707:user/gaspar-tamas-iam"]
     }
     resources = ["${aws_s3_bucket.archive_storage_bucket.arn}/*"]
   }

@@ -95,7 +95,7 @@ def __upload_file_to_archive(s3_client, file, user_id: str, lock: threading.Lock
 
 
 def __sanitize_prefix(prefix: str):
-    prefix = prefix.replace(' ', '_')
+    prefix = prefix.replace(' ', '')
     return unicodedata.normalize('NFKD', prefix)
 
 

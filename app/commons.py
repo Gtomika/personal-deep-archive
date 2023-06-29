@@ -82,6 +82,10 @@ def extract_command_arguments(command: str) -> str:
     return command.split(sep=' ')[1]
 
 
+def extract_quoted_argument(command: str) -> str:
+    return (command.split('"'))[1].split('"')[0]
+
+
 def validate_root_folder(root: pathlib.Path):
     if not root.exists() or not root.is_dir():
         raise Exception('Root of the archive must be an existing folder!')
