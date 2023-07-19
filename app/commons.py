@@ -1,4 +1,9 @@
 import pathlib
+from time import perf_counter
+from contextlib import contextmanager
+
+import boto3
+from botocore.config import Config
 
 import constants
 
@@ -77,9 +82,13 @@ def extract_command_arguments(command: str) -> str:
     return command.split(sep=' ')[1]
 
 
+def extract_quoted_argument(command: str) -> str:
+    return (command.split('"'))[1].split('"')[0]
+
+
 def validate_root_folder(root: pathlib.Path):
     if not root.exists() or not root.is_dir():
-        raise 'Root of the archive must be an existing folder!'
+        raise Exception('Root of the archive must be an existing folder!')
 
 
 def get_files_data(root: pathlib.Path, absolute_path: pathlib.Path) -> FilesData:
@@ -87,7 +96,7 @@ def get_files_data(root: pathlib.Path, absolute_path: pathlib.Path) -> FilesData
     Gather stats about the affected files.
     """
     if not absolute_path.exists() or not absolute_path.is_dir():
-        raise 'Path specified must point to an existing directory'
+        raise Exception('Path specified must point to an existing directory')
 
     data = FilesData()
     for file in pathlib.Path(absolute_path).rglob('*.*'):
@@ -106,3 +115,26 @@ def batch(iterable, n=1):
     l = len(iterable)
     for ndx in range(0, l, n):
         yield iterable[ndx:min(ndx + n, l)]
+
+
+def build_s3_client(aws_session: boto3.Session):
+    return aws_session.client(
+        service_name='s3',
+        region_name=constants.AWS_REGION
+    )
+
+
+def build_s3_client_accelerated(aws_session: boto3.Session):
+    return aws_session.client(
+        service_name='s3',
+        region_name=constants.AWS_REGION,
+        config=Config(s3={
+            'use_accelerate_endpoint': True
+        })
+    )
+
+
+@contextmanager
+def catch_time() -> float:
+    start = perf_counter()
+    yield lambda: perf_counter() - start

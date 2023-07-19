@@ -10,14 +10,19 @@ resource "aws_s3_bucket_versioning" "archival_versioning" {
   }
 }
 
+resource "aws_s3_bucket_accelerate_configuration" "archival_accelerate" {
+  bucket = aws_s3_bucket.archive_storage_bucket.id
+  status = "Enabled" //or "Suspended"
+}
+
 data "aws_iam_policy_document" "archive_bucket_policy_doc" {
   statement {
     sid = "DenyObjectDeletions"
     effect = "Deny"
     actions = ["s3:DeleteObject"]
-    principals {
-      type = "*"
-      identifiers = ["*"]
+    not_principals {
+      type = "AWS"
+      identifiers = ["arn:aws:iam::844933496707:user/gaspar-tamas-iam"]
     }
     resources = ["${aws_s3_bucket.archive_storage_bucket.arn}/*"]
   }

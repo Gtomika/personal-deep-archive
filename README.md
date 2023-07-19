@@ -15,8 +15,6 @@ Then, it will ask for the root folder of the data (an absolute path). Then, it c
 Available commands:
 
 - `list_archive [path]`: List all objects (files) that are in the deep archive starting with the given path prefix.
-- `list_ongoing_restoration [path]`: List all objects that are currently being restored.
-- `list_restored [path]`: List all objects (files) that are restored and have the given path prefix.
 - `archive_data [path]`: Archive files that are under the path on your local machine.
 - `restore_data [path]`: Start restoration of files (objects) starting with the given path prefix. Restored 
 objects are kept for 10 days, after that they go back to the archive.
