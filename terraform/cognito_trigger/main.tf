@@ -62,7 +62,7 @@ resource "aws_lambda_function" "trigger_function" {
   source_code_hash = filebase64sha256(var.path_to_deployment_package)
 
   memory_size = 256
-  runtime = "python3.9"
+  runtime = "python3.13"
   handler = var.handler_name
 
   environment {

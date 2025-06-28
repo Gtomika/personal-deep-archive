@@ -22,12 +22,12 @@ jobs:
   package-cognito-triggers:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Copy lambda source | pre signup
         run: cp cognito_triggers/pre_signup/pre_signup.py pre_signup.py
       - name: Package trigger lambda | pre signup
         run: zip pre_signup_trigger.zip pre_signup.py
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: pre-signup-deployment-package
           path: pre_signup_trigger.zip
@@ -36,12 +36,12 @@ jobs:
     runs-on: ubuntu-latest
     environment: plan-infrastructure
     steps:
-      - uses: actions/checkout@v3
-      - uses: hashicorp/setup-terraform@v2
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
       - name: Validate Terraform configuration
         run: |
           cd terraform
-          terraform init -backend-config="bucket=$TERRAFORM_STATE_BUCKET" -backend-config="key=$TERRAFORM_STATE_FILE" -backend-config="region=$AWS_REGION"
+          terraform init -upgrade -backend-config="bucket=$TERRAFORM_STATE_BUCKET" -backend-config="key=$TERRAFORM_STATE_FILE" -backend-config="region=$AWS_REGION"
           terraform validate
     needs: [package-cognito-triggers]
 
@@ -49,15 +49,15 @@ jobs:
     runs-on: ubuntu-latest
     environment: plan-infrastructure
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/download-artifact@v3
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
         with:
           name: pre-signup-deployment-package
-      - uses: hashicorp/setup-terraform@v2
+      - uses: hashicorp/setup-terraform@v3
       - name: Plan actions by Terraform
         run: |
           cd terraform
-          terraform init -backend-config="bucket=$TERRAFORM_STATE_BUCKET" -backend-config="key=$TERRAFORM_STATE_FILE" -backend-config="region=$AWS_REGION"
+          terraform init -upgrade -backend-config="bucket=$TERRAFORM_STATE_BUCKET" -backend-config="key=$TERRAFORM_STATE_FILE" -backend-config="region=$AWS_REGION"
           terraform plan -out=app.tfplan \
             -var aws_region="$AWS_REGION" \
             -var aws_account_id="$AWS_ACCOUNT_ID" \
@@ -68,7 +68,7 @@ jobs:
             -var aws_assume_role_external_id="$AWS_STS_EXTERNAL_KEY" \
             -var developer_email_address="$DEVELOPER_EMAIL_ADDRESS"
           cd ..
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: terraform-plan-prd
           path: terraform/app.tfplan
@@ -78,16 +78,16 @@ jobs:
     runs-on: ubuntu-latest
     environment: create-infrastructure
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/download-artifact@v3
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
         with:
           name: pre-signup-deployment-package
-      - uses: hashicorp/setup-terraform@v2
-      - uses: actions/download-artifact@v3
+      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/download-artifact@v4
       - name: Apply Terraform plan
         run: |
           cd terraform
-          terraform init -backend-config="bucket=$TERRAFORM_STATE_BUCKET" -backend-config="key=$TERRAFORM_STATE_FILE" -backend-config="region=$AWS_REGION"
+          terraform init -upgrade -backend-config="bucket=$TERRAFORM_STATE_BUCKET" -backend-config="key=$TERRAFORM_STATE_FILE" -backend-config="region=$AWS_REGION"
           terraform apply -auto-approve "./../terraform-plan-prd/app.tfplan"
     needs: terraform-plan
 
@@ -95,13 +95,13 @@ jobs:
     runs-on: ubuntu-latest
     environment: destroy-infrastructure
     steps:
-      - uses: actions/checkout@v3
-      - uses: hashicorp/setup-terraform@v2
-      - uses: actions/download-artifact@v3
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/download-artifact@v4
       - name: Destroy infrastructure with Terraform
         run: |
           cd terraform
-          terraform init -backend-config="bucket=$TERRAFORM_STATE_BUCKET" -backend-config="key=$TERRAFORM_STATE_FILE" -backend-config="region=$AWS_REGION"
+          terraform init -upgrade -backend-config="bucket=$TERRAFORM_STATE_BUCKET" -backend-config="key=$TERRAFORM_STATE_FILE" -backend-config="region=$AWS_REGION"
           terraform destroy -auto-approve \
             -var aws_region="$AWS_REGION" \
             -var aws_account_id="$AWS_ACCOUNT_ID" \
