@@ -59,7 +59,7 @@ resource "aws_lambda_function" "trigger_function" {
 
   # deployment package must exist before
   filename = var.path_to_deployment_package
-  source_code_hash = filebase64sha256(var.path_to_deployment_package)
+  # source_code_hash = filebase64sha256(var.path_to_deployment_package)
 
   memory_size = 256
   runtime = "python3.13"
