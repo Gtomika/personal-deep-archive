@@ -1,6 +1,6 @@
 resource "aws_s3_bucket" "archive_storage_bucket" {
   bucket = "${lower(var.app_name)}-archive-data-${var.aws_region}"
-  force_destroy = false
+  force_destroy = true
 }
 
 resource "aws_s3_bucket_versioning" "archival_versioning" {
